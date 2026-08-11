@@ -23,9 +23,9 @@ export default function GradesPage() {
     get<Row[]>('/api/grades').then(rs => {
       setRows(rs);
       const exams = [...new Set(rs.map(r => String(r.exam_name)))];
-      setExam(exams[0] ?? '');
+      setExam(exams[exams.length - 1] ?? '');
       setLoading(false);
-    });
+    }).catch(() => setLoading(false));
   }, []);
 
   const exams = useMemo(() => [...new Set(rows.map(r => String(r.exam_name)))], [rows]);
@@ -61,8 +61,13 @@ export default function GradesPage() {
   const updateScore = async (id: number, score: string | number) => {
     const prev = rows;
     setRows(rows.map(r => r.id === id ? { ...r, score } : r));
-    try { const u = await put<Row>(`/api/grades/${id}`, { score }); setRows(rows.map(r => r.id === id ? u : r)); }
-    catch { setRows(prev); }
+    try {
+      const u = await put<Row>(`/api/grades/${id}`, { score });
+      setRows(rows.map(r => r.id === id ? u : r));
+    } catch (e) {
+      setRows(prev);
+      throw e;
+    }
   };
 
   return (
