@@ -5,9 +5,6 @@ const GIVEN = ['子涵','雨欣','欣怡','梓萱','浩然','子轩','宇轩','�
 const PHONE_PREFIX = ['130','131','132','133','135','136','137','138','139','150','151','152','153','155','156','157','158','159','180','181','182','183','185','186','187','188','189'];
 const LEVELS = ['优秀','良好','合格','重点关注'];
 const ROLES = ['班长','副班长','学习委员','纪律委员','劳动委员','体育委员','语文课代表','数学课代表','英语课代表', ''];
-const DISCIPLINE_CATS = ['常规纪律','迟到早退','课堂表现','课间行为','卫生值日'];
-const WORK_TYPES = ['班级管理','教学教研','家校沟通','学生培优','生涯活动','安全教育','会议培训','心理辅导'];
-const SAFETY_CATS = ['课间','交通','食品','消防','防溺水','其他'];
 
 function rand(n: number) { return Math.floor(Math.random() * n); }
 function pick<T>(arr: T[]): T { return arr[rand(arr.length)]; }
@@ -57,7 +54,7 @@ export function seedIfEmpty(db: DatabaseSync): void {
   const subjects = ['语文', '数学', '英语', '科学', '道德与法治', '体育', '音乐', '美术', '班会', '劳动'];
   const tt = db.prepare(`INSERT INTO timetable (weekday, period, subject, is_chinese) VALUES (?, ?, ?, ?)`);
   for (let wd = 1; wd <= 5; wd++) {
-    periods.forEach((p, i) => {
+    periods.forEach(p => {
       let subject = pick(subjects);
       if (p === '早读') subject = '语文';
       if (p === '中午托' || p === '下午托') subject = '自习';
@@ -93,7 +90,7 @@ export function seedIfEmpty(db: DatabaseSync): void {
   // 请假
   const lv = db.prepare(`INSERT INTO leave_records (student_name, leave_type, reason, start_date, end_date, hours) VALUES (?, ?, ?, ?, ?, ?)`);
   lv.run(students[0], '事假', '家里有事', date(1), date(1), 8);
-  lv.run(students[1], '病假', '感冒发烧', date(3), date(2), 16);
+  lv.run(students[1], '病假', '感冒发烧', date(2), date(1), 16);
 
   // 违纪
   const dc = db.prepare(`INSERT INTO discipline_records (date, student_name, category, content, action) VALUES (?, ?, ?, ?, ?)`);

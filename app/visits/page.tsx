@@ -42,10 +42,13 @@ export default function VisitsPage() {
     stats: rows => {
       const visits = rows.filter(r => r.is_meeting != 1).length;
       const meetings = rows.filter(r => r.is_meeting == 1).length;
+      const meetingStudents = new Set(rows.filter(r => r.is_meeting == 1).map(r => String(r.student_name))).size;
+      const allStudents = new Set(rows.map(r => String(r.student_name))).size;
+      const rate = allStudents > 0 ? Math.round((meetingStudents / allStudents) * 100) : 0;
       return [
         { label: '家访次数', value: visits, tone: 'amber' },
-        { label: '家长会场次', value: meetings, tone: 'purple' },
-        { label: '家长会参会率', value: `${Math.min(100, Math.round((45 / 50) * 100))}%`, tone: 'teal' },
+        { label: '家长会场次', value: meetings, tone: 'amber' },
+        { label: '家长会参会率', value: `${rate}%`, tone: 'teal' },
       ];
     },
     defaultNewRow: () => ({ date: new Date().toISOString().slice(0, 10), student_name: '', way: '电话', content: '', is_meeting: 0 }),

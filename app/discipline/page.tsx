@@ -17,7 +17,7 @@ const config: CrudPageConfig = {
   ],
   stats: rows => [
     { label: '累计条数', value: rows.length, tone: 'red' },
-    { label: '本周条数', value: rows.filter(r => String(r.date) >= new Date(Date.now() - 6 * 864e5).toISOString().slice(0, 10)).length, tone: 'amber' },
+    { label: '本周条数', value: rows.filter(r => String(r.date) >= new Date(Date.now() - 6 * 864e5).toISOString().slice(0, 10)).length, tone: 'teal' },
   ],
   defaultNewRow: () => ({ date: new Date().toISOString().slice(0, 10), student_name: '', category: '常规纪律', content: '', action: '' }),
 };

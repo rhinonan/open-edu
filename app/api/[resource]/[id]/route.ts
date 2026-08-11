@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
-import { get, update, remove, RESOURCES } from '@/lib/store';
+import { update, remove, RESOURCES } from '@/lib/store';
 import type { ResourceKey } from '@/lib/types';
 
 type Ctx = { params: Promise<{ resource: string; id: string }> };

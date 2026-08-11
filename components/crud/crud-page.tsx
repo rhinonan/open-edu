@@ -31,8 +31,13 @@ export default function CrudPage({ config }: { config: CrudPageConfig }) {
   const handleUpdate = async (id: number, patch: Partial<Row>) => {
     const prev = rows;
     setRows(rows.map(r => r.id === id ? ({ ...r, ...patch } as Row) : r));
-    try { const updated = await put<Row>(`/api/${config.resource}/${id}`, patch); setRows(rows.map(r => r.id === id ? updated : r)); }
-    catch { setRows(prev); }
+    try {
+      const updated = await put<Row>(`/api/${config.resource}/${id}`, patch);
+      setRows(rows.map(r => r.id === id ? updated : r));
+    } catch (e) {
+      setRows(prev);
+      throw e;
+    }
   };
 
   const handleCreate = async () => {
@@ -87,9 +92,12 @@ export default function CrudPage({ config }: { config: CrudPageConfig }) {
                   <option value="">请选择</option>
                   {c.options?.map(o => <option key={o} value={o}>{o}</option>)}
                 </select>
+              ) : c.type === 'textarea' ? (
+                <textarea className="border border-slate-300 rounded px-2 py-1.5 text-sm" rows={2}
+                  value={draft[c.key] ?? ''} onChange={e => setDraft({ ...draft, [c.key]: e.target.value })} />
               ) : (
                 <input className="border border-slate-300 rounded px-2 py-1.5 text-sm"
-                  type={c.type === 'number' ? 'number' : 'text'}
+                  type={c.type === 'number' ? 'number' : c.type === 'date' ? 'date' : 'text'}
                   value={draft[c.key] ?? ''} onChange={e => setDraft({ ...draft, [c.key]: e.target.value })} />
               )}
             </label>

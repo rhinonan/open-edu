@@ -22,8 +22,8 @@ const config: CrudPageConfig = {
     return [
       { label: '累计请假记录', value: rows.length, tone: 'blue' },
       { label: '当日请假', value: rows.filter(r => r.start_date === today()).length, tone: 'teal' },
-      { label: '本月人次', value: monthRows.length, tone: 'purple' },
-      { label: '本月病假占比', value: monthRows.length ? `${Math.round((sick / monthRows.length) * 100)}%` : '0%', tone: 'amber' },
+      { label: '本月人次', value: monthRows.length, tone: 'teal' },
+      { label: '本月病假占比', value: monthRows.length ? `${Math.round((sick / monthRows.length) * 100)}%` : '0%', tone: 'teal' },
     ];
   },
   defaultNewRow: () => ({ student_name: '', leave_type: '事假', reason: '', start_date: today(), end_date: today(), hours: 8 }),

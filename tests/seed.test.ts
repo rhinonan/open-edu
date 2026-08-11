@@ -54,7 +54,13 @@ describe('resetData', () => {
     seedIfEmpty(db);
     db.prepare('DELETE FROM students WHERE id IN (SELECT id FROM students LIMIT 5)').run();
     resetData(db);
+    const settings = (db.prepare('SELECT COUNT(*) AS n FROM settings').get() as { n: number }).n;
+    const workLogs = (db.prepare('SELECT COUNT(*) AS n FROM work_logs').get() as { n: number }).n;
+    const timetable = (db.prepare('SELECT COUNT(*) AS n FROM timetable').get() as { n: number }).n;
     const n = (db.prepare('SELECT COUNT(*) AS n FROM students').get() as { n: number }).n;
+    expect(settings).toBe(6);
+    expect(workLogs).toBe(5);
+    expect(timetable).toBe(30);
     expect(n).toBe(45);
   });
 });

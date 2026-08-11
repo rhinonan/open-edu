@@ -59,6 +59,7 @@ export default function SchedulePage() {
         { label: '全部任务', value: rows.length, tone: 'blue' },
         { label: '备课', value: rows.filter(r => r.type === '备课').length, tone: 'teal' },
         { label: '教研', value: rows.filter(r => r.type === '教研').length, tone: 'purple' },
+        { label: '培优', value: rows.filter(r => r.type === '培优').length, tone: 'red' },
         { label: '监考', value: rows.filter(r => r.type === '监考').length, tone: 'amber' },
         { label: '会议', value: rows.filter(r => r.type === '会议').length, tone: 'red' },
       ]} />
