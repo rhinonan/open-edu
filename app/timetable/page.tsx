@@ -4,7 +4,6 @@ import { get, put } from '@/lib/api-client';
 import type { Row } from '@/lib/types';
 import ChartCard from '@/components/ui/chart-card';
 import InlineEdit from '@/components/ui/inline-edit';
-import { CategoryColor } from '@/components/ui/color-utils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const DAYS = ['周一', '周二', '周三', '周四', '周五'];
@@ -17,7 +16,13 @@ export default function TimetablePage() {
 
   const grid = useMemo(() => {
     const m = new Map<string, Row>();
-    for (const r of rows) m.set(`${r.weekday}-${r.period}`, r);
+    const pos = new Map<number, number>();
+    for (const r of rows) {
+      const wd = Number(r.weekday);
+      const p = pos.get(wd) ?? 0;
+      pos.set(wd, p + 1);
+      m.set(`${wd}-${p}`, r);
+    }
     return m;
   }, [rows]);
 
@@ -62,7 +67,7 @@ export default function TimetablePage() {
               <tr key={i}>
                 <td className="px-2 py-2 border-b border-slate-100 text-xs text-slate-500 whitespace-nowrap">{period}{i > 0 && i < 4 ? i : ''}</td>
                 {DAYS.map(d => {
-                  const key = `${DAYS.indexOf(d) + 1}-${period}`;
+                  const key = `${DAYS.indexOf(d) + 1}-${i}`;
                   const r = grid.get(key);
                   if (!r) return <td key={key} className="px-2 py-2 border-b border-slate-100"></td>;
                   const chinese = r.is_chinese == 1;
