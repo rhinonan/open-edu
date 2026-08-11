@@ -4,9 +4,9 @@
 
 **Goal:** 构建一个长沙公办小学六年级班主任的智慧班级管理工作台 —— 响应式 Web 应用，17 个页面，所有数据点击即编辑、自动保存，SQLite 文件数据库，本机运行、手机同 Wi-Fi 可访问。
 
-**Architecture:** Next.js 15（App Router）单进程应用。客户端组件负责界面与交互；`app/api/[...resource]/route.ts` 一个 catch-all 动态路由对所有 18 个资源提供 REST CRUD；`lib/store.ts` 是纯函数数据访问层（接受 db 参数，便于测试）；`lib/db.ts` 提供 `node:sqlite` 单例；首次启动自动建表 + 灌入随机姓名种子数据。界面用 `CrudPage` 通用配置组件大幅复用，自定义页面（仪表盘/课表/排座位/成绩/综合素质/日程）单独实现。
+**Architecture:** Next.js 16（App Router，单进程）应用。客户端组件负责界面与交互；`app/api/[...resource]/route.ts` 一个 catch-all 动态路由对所有 18 个资源提供 REST CRUD；`lib/store.ts` 是纯函数数据访问层（接受 db 参数，便于测试）；`lib/db.ts` 提供 `node:sqlite` 单例；首次启动自动建表 + 灌入随机姓名种子数据。界面用 `CrudPage` 通用配置组件大幅复用，自定义页面（仪表盘/课表/排座位/成绩/综合素质/日程）单独实现。
 
-**Tech Stack:** Next.js 15（App Router, TypeScript）、Tailwind CSS v4、`node:sqlite`（Node 24 内置，零原生依赖）、Recharts、vitest。
+**Tech Stack:** Next.js 16（App Router, TypeScript）、Tailwind CSS v4、`node:sqlite`（Node 24 内置，零原生依赖）、Recharts、vitest。
 
 ## Global Constraints
 
