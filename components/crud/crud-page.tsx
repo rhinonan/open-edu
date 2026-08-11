@@ -19,8 +19,10 @@ export default function CrudPage({ config }: { config: CrudPageConfig }) {
   const [draft, setDraft] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    get<Row[]>(`/api/${config.resource}`).then(r => { setRows(r); setLoading(false); });
-  }, [config.resource]);
+    get<Row[]>(`/api/${config.resource}`)
+      .then(r => { setRows(r); setLoading(false); })
+      .catch(() => { setLoading(false); toast('加载失败', 'err'); });
+  }, [config.resource, toast]);
 
   const filtered = useMemo(() => rows.filter(r =>
     Object.entries(filter).every(([k, v]) => !v || String(r[k]) === v)

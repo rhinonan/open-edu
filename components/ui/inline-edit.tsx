@@ -52,7 +52,7 @@ export default function InlineEdit({ value, type = 'text', options, onSave, clas
   const base = 'w-full px-1 py-0.5 rounded border border-accent outline-none text-sm';
   if (type === 'select' && options) {
     return (
-      <select ref={inputRef as never} className={base} value={String(value ?? '')} onChange={e => { setDraft(e.target.value); }} onBlur={save}>
+      <select ref={inputRef as never} className={base} value={draft} onChange={e => { setDraft(e.target.value); }} onBlur={save}>
         {options.map(o => <option key={o} value={o}>{o}</option>)}
       </select>
     );

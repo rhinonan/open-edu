@@ -28,7 +28,9 @@ export default function DataTable({ rows, columns, onUpdate, onDelete, canDelete
             <tr key={r.id} className="border-b border-slate-100 hover:bg-slate-50/60">
               {columns.map(c => (
                 <td key={c.key} className="px-3 py-1.5" style={c.width ? { minWidth: c.width } : undefined}>
-                  {c.render ? c.render(r) : (
+                  {c.render ? c.render(r) : c.readOnly ? (
+                    <span className="px-1 py-0.5 block">{r[c.key] === null || r[c.key] === '' ? '—' : String(r[c.key])}</span>
+                  ) : (
                     <InlineEdit
                       value={r[c.key]}
                       type={c.type}
