@@ -39,7 +39,7 @@ export default function CrudPage({ config }: { config: CrudPageConfig }) {
     const defaults = config.defaultNewRow?.() ?? {};
     const data: Partial<Row> = { ...defaults };
     for (const c of config.columns) {
-      if (!c.readOnly && !(c.key in data) && draft[c.key] !== undefined) data[c.key] = draft[c.key];
+      if (!c.readOnly && draft[c.key] !== undefined) data[c.key] = draft[c.key];
     }
     try {
       const row = await post<Row>(`/api/${config.resource}`, data);
