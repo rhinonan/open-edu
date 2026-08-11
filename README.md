@@ -1,36 +1,31 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 班主任智慧工作台
 
-## Getting Started
+长沙公办小学六年级班主任智慧班级管理工作台（移动端 + 电脑端自适应）。
 
-First, run the development server:
+## 快速开始
+
+要求 Node.js >= 22。
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev        # 开发模式，绑定 0.0.0.0:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+或生产模式：
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run build
+npm start          # http://电脑局域网IP:3000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+手机连同一 Wi-Fi，用浏览器打开 `http://电脑局域网IP:3000`。
 
-## Learn More
+## 数据说明
 
-To learn more about Next.js, take a look at the following resources:
+- 数据库为 SQLite 文件 `data/app.db`，首次启动自动创建并生成随机演示数据（学生/家长姓名均为匿名，保护隐私）。
+- 所有单元格点击即可编辑，失焦/回车自动保存。
+- 系统设置页可重置演示数据或备份数据库。
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 功能模块
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+仪表盘 / 日程安排 / 我的课表 / 学生管理 / 成绩分析 / 作业管理 / 请假管理 / 违纪台账 / 谈话记录 / 生涯家访 / 综合素质评价 / 排座位 / 家校沟通 / 安全台账 / 培优临界生 / 工作留痕 / 系统设置
