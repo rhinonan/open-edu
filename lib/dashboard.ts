@@ -27,7 +27,8 @@ export function dashboardStats(db: DatabaseSync): DashboardStats {
   const monthWorkLogs = one('SELECT COUNT(*) n FROM work_logs WHERE date >= ?', [daysAgo(30)]).n;
   const homeVisitCount = one("SELECT COUNT(*) n FROM home_visits WHERE is_meeting=0").n;
   const parentMeetingCount = one("SELECT COUNT(*) n FROM home_visits WHERE is_meeting=1").n;
-  const parentMeetingRate = parentMeetingCount > 0 ? Math.round((45 / 50) * 100) : 0;
+  const engaged = (db.prepare('SELECT COUNT(DISTINCT student_name) n FROM parent_comm').get() as { n: number }).n;
+  const parentMeetingRate = students.n > 0 ? Math.min(100, Math.round((engaged / students.n) * 100)) : 0;
   const criticalCount = one('SELECT COUNT(*) n FROM peiyou_records').n;
 
   return {
