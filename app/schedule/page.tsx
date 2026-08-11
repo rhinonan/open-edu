@@ -31,8 +31,12 @@ export default function SchedulePage() {
   };
 
   const update = async (id: number, patch: Partial<Row>) => {
-    try { const u = await put<Row>(`/api/schedules/${id}`, patch); setRows(rows.map(r => r.id === id ? u : r)); }
-    catch { toast('保存失败', 'err'); }
+    try {
+      const u = await put<Row>(`/api/schedules/${id}`, patch);
+      setRows(rows.map(r => r.id === id ? u : r));
+    } catch (e) {
+      throw e;
+    }
   };
 
   const submit = async () => {
