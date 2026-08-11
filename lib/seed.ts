@@ -146,3 +146,11 @@ export function seedIfEmpty(db: DatabaseSync): void {
     }
   }
 }
+
+export function resetData(db: DatabaseSync): void {
+  const tables = ['todos', 'work_logs', 'peiyou_records', 'safety_logs', 'parent_comm',
+    'evaluation', 'home_visits', 'conversations', 'timetable', 'schedules', 'homework',
+    'grades', 'discipline_records', 'leave_records', 'seats', 'students', 'settings', 'classroom_config'];
+  db.exec(tables.map(t => `DELETE FROM ${t}`).join(';'));
+  seedIfEmpty(db);
+}

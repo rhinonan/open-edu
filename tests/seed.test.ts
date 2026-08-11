@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { DatabaseSync } from 'node:sqlite';
 import { SCHEMA_SQL } from '../lib/schema';
-import { seedIfEmpty } from '../lib/seed';
+import { seedIfEmpty, resetData } from '../lib/seed';
 
 function makeDb() {
   const db = new DatabaseSync(':memory:');
@@ -45,5 +45,16 @@ describe('seedIfEmpty', () => {
     expect(name.value).toContain('小学');
     const cc = (db.prepare('SELECT COUNT(*) AS n FROM classroom_config').get() as { n: number }).n;
     expect(cc).toBe(1);
+  });
+});
+
+describe('resetData', () => {
+  it('resetData 后重新灌入数据', () => {
+    const db = makeDb();
+    seedIfEmpty(db);
+    db.prepare('DELETE FROM students WHERE id IN (SELECT id FROM students LIMIT 5)').run();
+    resetData(db);
+    const n = (db.prepare('SELECT COUNT(*) AS n FROM students').get() as { n: number }).n;
+    expect(n).toBe(45);
   });
 });
