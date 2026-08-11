@@ -30,8 +30,8 @@ const MENU: { href: string; label: string; icon: LucideIcon }[] = [
 export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   return (
-    <nav className="w-full flex flex-col gap-0.5 p-2">
-      <div className="px-3 py-4 text-center text-sm font-semibold text-white/90 border-b border-white/10 mb-2">
+    <nav className="w-full h-full flex flex-col gap-0.5 p-2 overflow-y-auto">
+      <div className="sticky top-0 z-10 bg-navy px-3 py-4 text-center text-sm font-semibold text-white/90 border-b border-white/10 mb-2">
         班主任智慧工作台
       </div>
       {MENU.map(m => {
