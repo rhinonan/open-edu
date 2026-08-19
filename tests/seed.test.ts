@@ -64,3 +64,25 @@ describe('resetData', () => {
     expect(n).toBe(45);
   });
 });
+
+describe('seed 新学籍字段', () => {
+  it('学号连续唯一、身份证 18 位唯一、其余新字段完整', () => {
+    const db = makeDb();
+    seedIfEmpty(db);
+    const rows = db.prepare('SELECT * FROM students ORDER BY student_no').all() as { student_no: string; idcard: string; parent_name: string; address: string; level: number; noon_care: number; breakfast: number; afternoon_care: number }[];
+    expect(rows.length).toBe(45);
+    expect(rows.map(r => r.student_no)).toEqual(Array.from({ length: 45 }, (_, i) => String(i + 1).padStart(2, '0')));
+    const ids = rows.map(r => r.idcard);
+    expect(new Set(ids).size).toBe(45);
+    ids.forEach(id => expect(id.length).toBe(18));
+    rows.forEach(r => {
+      expect(r.parent_name).toBeTruthy();
+      expect(r.address).toBeTruthy();
+      expect([0, 1]).toContain(r.noon_care);
+      expect([0, 1]).toContain(r.breakfast);
+      expect([0, 1]).toContain(r.afternoon_care);
+      expect(r.level).toBeGreaterThanOrEqual(1);
+      expect(r.level).toBeLessThanOrEqual(6);
+    });
+  });
+});

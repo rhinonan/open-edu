@@ -21,7 +21,7 @@ describe('store', () => {
 
   it('create 新增并返回带 id 的行', () => {
     const db = makeDb();
-    const row = create(db, 'students', { name: '测试生', gender: '男', parent_phone: '13000000000', role: '', group_no: 1, level: '良好', afternoon_care: 1, remark: '' });
+    const row = create(db, 'students', { name: '测试生', gender: '男', parent_phone: '13000000000', role: '', group_no: 1, level: 5, afternoon_care: 1, remark: '' });
     expect(row.id).toBeTruthy();
     expect(get(db, 'students', row.id as number)?.name).toBe('测试生');
   });

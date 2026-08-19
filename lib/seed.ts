@@ -1,9 +1,11 @@
 import type { DatabaseSync } from 'node:sqlite';
+import { SCHEMA_SQL } from './schema';
 
 const SURNAMES = ['李','王','张','刘','陈','杨','赵','黄','周','吴','徐','孙','胡','朱','高','林','何','郭','马','罗','梁','宋','郑','谢','韩','唐','冯','于','董','萧','程','曹','袁','邓','许','傅','沈','曾','彭','吕','苏','卢','蒋','蔡','贾','丁','魏','薛','叶','阎','余','潘','杜','戴','夏','钟','汪','田','任','姜','范','方','石','姚','谭','廖','邹','熊','金','陆','郝','孔','白','崔','康','毛','邱','秦','江','史','顾','侯','邵','孟','龙','万','段','雷','钱','汤','尹','黎','易','常','武','乔','贺','赖','龚'];
 const GIVEN = ['子涵','雨欣','欣怡','梓萱','浩然','子轩','宇轩','思远','俊杰','天佑','佳琪','梦洁','诗涵','可欣','一诺','欣妍','奕辰','梓豪','若曦','语嫣','悦彤','雨泽','志强','文博','明轩','芷晴','思彤','博文','子墨','峻熙','嘉懿','煜城','懿轩','烨霖','楷瑞','建辉','致远','文昊','凯瑞','昊然','奕然','黎昕','志远','轩磊','浩宇','瑾瑜','子航','梓童','静怡','思睿'];
 const PHONE_PREFIX = ['130','131','132','133','135','136','137','138','139','150','151','152','153','155','156','157','158','159','180','181','182','183','185','186','187','188','189'];
-const LEVELS = ['优秀','良好','合格','重点关注'];
+const AREAS = ['青园街道', '侯家塘街道', '金盆岭街道', '东塘街道', '赤岭路街道', '文源街道'];
+const RESIDENCES = ['天心阁小区', '湘府华庭', '阳光壹佰', '白沙花园', '翡翠云天', '翰林府'];
 const ROLES = ['班长','副班长','学习委员','纪律委员','劳动委员','体育委员','语文课代表','数学课代表','英语课代表', ''];
 
 function rand(n: number) { return Math.floor(Math.random() * n); }
@@ -20,24 +22,41 @@ function uniqueNames(n: number): string[] {
   return [...out];
 }
 
+function fakeIdcard(i: number): string {
+  const area = '430102';
+  const birth = `${2013 + rand(2)}${String(rand(12) + 1).padStart(2, '0')}${String(rand(28) + 1).padStart(2, '0')}`;
+  const seq = String(i + 1).padStart(3, '0'); // i 0..44 → 唯一
+  const body = area + birth + seq; // 17 位
+  const weights = [7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2];
+  const map = '10X98765432';
+  const sum = body.split('').reduce((s, ch, idx) => s + Number(ch) * weights[idx], 0);
+  return body + map[sum % 11];
+}
+
 export function seedIfEmpty(db: DatabaseSync): void {
   const has = (db.prepare('SELECT COUNT(*) AS n FROM students').get() as { n: number }).n;
   if (has > 0) return;
 
-  const ins = db.prepare(`INSERT INTO students (name, gender, parent_phone, role, group_no, level, afternoon_care, remark)
-    VALUES (@name, @gender, @phone, @role, @group, @level, @care, '')`);
+  const ins = db.prepare(`INSERT INTO students (student_no, name, gender, parent_name, parent_phone, idcard, address, level, group_no, role, noon_care, breakfast, afternoon_care, remark)
+    VALUES (@student_no, @name, @gender, @parent_name, @phone, @idcard, @address, @level, @group, @role, @noon, @breakfast, @care, '')`);
   const students = uniqueNames(45);
-  for (const name of students) {
+  students.forEach((name, i) => {
     ins.run({
+      student_no: String(i + 1).padStart(2, '0'),
       name,
       gender: rand(2) === 0 ? '女' : '男',
+      parent_name: pick(SURNAMES) + pick(GIVEN),
       phone: phone(),
-      role: rand(4) === 0 ? pick(ROLES) : '',
+      idcard: fakeIdcard(i),
+      address: pick(AREAS) + pick(RESIDENCES),
+      level: 1 + rand(6),
       group: rand(6) + 1,
-      level: pick(LEVELS),
+      role: rand(4) === 0 ? pick(ROLES) : '',
+      noon: rand(2) === 0 ? 0 : 1,
+      breakfast: rand(2) === 0 ? 0 : 1,
       care: rand(2) === 0 ? 0 : 1,
     });
-  }
+  });
 
   db.prepare(`INSERT INTO settings (key, value) VALUES
     ('class_name', '长沙青园小学六年级（1）班'),
@@ -148,6 +167,7 @@ export function resetData(db: DatabaseSync): void {
   const tables = ['todos', 'work_logs', 'peiyou_records', 'safety_logs', 'parent_comm',
     'evaluation', 'home_visits', 'conversations', 'timetable', 'schedules', 'homework',
     'grades', 'discipline_records', 'leave_records', 'seats', 'students', 'settings', 'classroom_config'];
-  db.exec(tables.map(t => `DELETE FROM ${t}`).join(';'));
+  db.exec(tables.map(t => `DROP TABLE IF EXISTS ${t}`).join(';'));
+  db.exec(SCHEMA_SQL);
   seedIfEmpty(db);
 }
