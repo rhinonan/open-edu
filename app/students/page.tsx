@@ -85,7 +85,7 @@ const config: CrudPageConfig = {
           role: f['role'] ?? '',
           noon_care: to01(f['noon_care'] ?? ''),
           breakfast: to01(f['breakfast'] ?? ''),
-          afternoon_care: f['afternoon_care'] === '0' ? 0 : 1,
+          afternoon_care: to01(f['afternoon_care'] ?? ''),
           remark: f['remark'] ?? '',
         },
       };

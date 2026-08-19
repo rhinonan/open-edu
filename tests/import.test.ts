@@ -60,4 +60,21 @@ describe('importStudents', () => {
     const idc = String(list(db, 'students')[0].idcard);
     expect(() => { create(db, 'students', { name: 'A', idcard: idc }); }).toThrow();
   });
+
+  it('新身份证空学号 → INSERT 并自动取 max+1', () => {
+    const db = makeDb();
+    const r = importStudents(db, [item({ idcard: '430102201303020022', name: '无学号生' })]);
+    expect(r.created).toBe(1);
+    const row = list(db, 'students').find(x => x.idcard === '430102201303020022');
+    expect(row?.student_no).toBe('46');
+  });
+
+  it('已存在身份证空学号 → 保留原学号', () => {
+    const db = makeDb();
+    const first = list(db, 'students')[0];
+    const r = importStudents(db, [item({ idcard: String(first.idcard), name: '覆盖名' })]);
+    expect(r.updated).toBe(1);
+    const row = list(db, 'students').find(x => x.idcard === String(first.idcard));
+    expect(row?.student_no).toBe(String(first.student_no));
+  });
 });
