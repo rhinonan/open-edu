@@ -35,7 +35,7 @@ export default function DataTable({ rows, columns, onUpdate, onDelete, canDelete
                       value={r[c.key]}
                       type={c.type}
                       options={c.options}
-                      onSave={v => onUpdate(r.id as number, { [c.key]: v })}
+                      onSave={v => onUpdate(r.id as number, { [c.key]: c.nullOnEmpty && v === '' ? null : v })}
                     />
                   )}
                 </td>

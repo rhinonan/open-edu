@@ -7,6 +7,7 @@ import PageHeader from '../ui/page-header';
 import { StatRow } from '../ui/stat-card';
 import Modal from '../ui/modal';
 import DataTable from './data-table';
+import ImportModal from './import-modal';
 import { useToast } from '../ui/toast';
 import type { CrudPageConfig } from './types';
 
@@ -17,16 +18,43 @@ export default function CrudPage({ config }: { config: CrudPageConfig }) {
   const [filter, setFilter] = useState<Record<string, string>>({});
   const [addOpen, setAddOpen] = useState(false);
   const [draft, setDraft] = useState<Record<string, string>>({});
+  const [importOpen, setImportOpen] = useState(false);
+  const [colsOpen, setColsOpen] = useState(false);
 
+  const storageKey = `gzt:cols:${config.resource}`;
+  const [hidden, setHidden] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) return JSON.parse(saved) as string[];
+    } catch { /* localStorage 不可用 */ }
+    return config.defaultHidden ?? [];
+  });
   useEffect(() => {
+    try { localStorage.setItem(storageKey, JSON.stringify(hidden)); } catch { /* ignore */ }
+  }, [hidden, storageKey]);
+
+  const load = () => {
     get<Row[]>(`/api/${config.resource}`)
       .then(r => { setRows(r); setLoading(false); })
       .catch(() => { setLoading(false); toast('加载失败', 'err'); });
-  }, [config.resource, toast]);
+  };
+  useEffect(() => { load(); }, [config.resource]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const filtered = useMemo(() => rows.filter(r =>
-    Object.entries(filter).every(([k, v]) => !v || String(r[k]) === v)
-  ), [rows, filter]);
+  const filtered = useMemo(() => {
+    const f = rows.filter(r =>
+      Object.entries(filter).every(([k, v]) => !v || String(r[k]) === v)
+    );
+    return config.sortRows ? [...f].sort(config.sortRows) : f;
+  }, [rows, filter, config.sortRows]);
+
+  const visibleColumns = useMemo(
+    () => config.columns.filter(c => !hidden.includes(c.key)),
+    [config.columns, hidden]
+  );
+
+  const toggleCol = (key: string) => {
+    setHidden(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
+  };
 
   const handleUpdate = async (id: number, patch: Partial<Row>) => {
     const prev = rows;
@@ -41,10 +69,12 @@ export default function CrudPage({ config }: { config: CrudPageConfig }) {
   };
 
   const handleCreate = async () => {
-    const defaults = config.defaultNewRow?.() ?? {};
+    const defaults = config.defaultNewRow?.(rows) ?? {};
     const data: Partial<Row> = { ...defaults };
     for (const c of config.columns) {
-      if (!c.readOnly && draft[c.key] !== undefined) data[c.key] = draft[c.key];
+      if (!c.readOnly && draft[c.key] !== undefined) {
+        data[c.key] = c.nullOnEmpty && draft[c.key] === '' ? null : draft[c.key];
+      }
     }
     try {
       const row = await post<Row>(`/api/${config.resource}`, data);
@@ -60,11 +90,27 @@ export default function CrudPage({ config }: { config: CrudPageConfig }) {
     catch { toast('删除失败', 'err'); }
   };
 
-  const onExport = () => exportCsv(filtered, config.columns, `${config.title}.csv`);
+  const onExport = () => exportCsv(filtered, visibleColumns, `${config.title}.csv`);
 
   return (
-    <div>
-      <PageHeader title={config.title} onAdd={() => setAddOpen(true)} onExport={onExport} />
+    <div className="relative">
+      <PageHeader
+        title={config.title}
+        onAdd={() => setAddOpen(true)}
+        onExport={onExport}
+        onImport={config.importTemplate ? () => setImportOpen(true) : undefined}
+        onColumns={() => setColsOpen(o => !o)}
+      />
+      {colsOpen && (
+        <div className="absolute right-0 top-12 z-20 bg-white border border-slate-200 rounded-lg shadow-lg p-2 w-44">
+          {config.columns.map(c => (
+            <label key={c.key} className="flex items-center gap-2 px-2 py-1 text-xs text-slate-700 cursor-pointer">
+              <input type="checkbox" checked={!hidden.includes(c.key)} onChange={() => toggleCol(c.key)} />
+              {c.label}
+            </label>
+          ))}
+        </div>
+      )}
       {config.stats && <StatRow stats={config.stats(filtered)} />}
       {config.filters && (
         <div className="flex flex-wrap gap-2 mb-3">
@@ -78,7 +124,7 @@ export default function CrudPage({ config }: { config: CrudPageConfig }) {
         </div>
       )}
       {loading ? <div className="text-sm text-slate-400 py-8 text-center">加载中…</div> : (
-        <DataTable rows={filtered} columns={config.columns} onUpdate={handleUpdate} onDelete={handleDelete} canDelete={config.canDelete ?? true} />
+        <DataTable rows={filtered} columns={visibleColumns} onUpdate={handleUpdate} onDelete={handleDelete} canDelete={config.canDelete ?? true} />
       )}
 
       <Modal title={`新增${config.title.replace(/管理$/, '')}`} open={addOpen} onClose={() => setAddOpen(false)}>
@@ -107,6 +153,10 @@ export default function CrudPage({ config }: { config: CrudPageConfig }) {
           <button className="btn-primary px-4 py-1.5 text-sm" onClick={handleCreate}>保存</button>
         </div>
       </Modal>
+
+      {config.importTemplate && importOpen && (
+        <ImportModal resource={config.resource} template={config.importTemplate} onClose={() => setImportOpen(false)} onDone={load} />
+      )}
     </div>
   );
 }
