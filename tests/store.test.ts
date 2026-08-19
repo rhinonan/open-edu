@@ -40,6 +40,19 @@ describe('store', () => {
     expect(updated.group_no).toBe(9);
   });
 
+  it('update 显式 null 清空 idcard 并持久化', () => {
+    const db = makeDb();
+    const row = list(db, 'students')[0];
+    expect(String(row.idcard).length).toBe(18); // 种子行都带身份证
+    update(db, 'students', row.id as number, { idcard: null });
+    expect(get(db, 'students', row.id as number)?.idcard).toBeNull();
+    // 第二个学生同样清空 → 两条 NULL idcard 可共存（SQLite UNIQUE 对 NULL 不冲突）
+    const row2 = list(db, 'students')[1];
+    update(db, 'students', row2.id as number, { idcard: null });
+    expect(get(db, 'students', row2.id as number)?.idcard).toBeNull();
+    expect(list(db, 'students').filter(s => s.idcard === null).length).toBe(2);
+  });
+
   it('remove 删除后 list 减少', () => {
     const db = makeDb();
     const before = list(db, 'students').length;

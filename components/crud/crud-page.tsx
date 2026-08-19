@@ -25,7 +25,10 @@ export default function CrudPage({ config }: { config: CrudPageConfig }) {
   const [hidden, setHidden] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem(storageKey);
-      if (saved) return JSON.parse(saved) as string[];
+      if (saved) {
+        const v = JSON.parse(saved);
+        if (Array.isArray(v)) return v;
+      }
     } catch { /* localStorage 不可用 */ }
     return config.defaultHidden ?? [];
   });

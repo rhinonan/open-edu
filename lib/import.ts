@@ -44,6 +44,7 @@ export function importStudents(db: DatabaseSync, rows: ImportItem[]): ImportResu
   try {
     for (const r of rows) {
       if (!r.idcard) { result.skipped++; result.errors.push({ row: r.line, message: '缺少身份证' }); continue; }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { line: _line, ...fields } = r; // 'line' 仅用于统计，不参与 SQL 绑定
       if (find.get(r.idcard)) { upd.run(fields); result.updated++; }
       else {

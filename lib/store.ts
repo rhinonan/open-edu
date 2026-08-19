@@ -26,13 +26,14 @@ export function tableColumns(db: DatabaseSync, table: string): string[] {
   return (db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[]).map(c => c.name);
 }
 
-function sanitize(db: DatabaseSync, table: string, data: Partial<Row>): Record<string, string | number> {
+function sanitize(db: DatabaseSync, table: string, data: Partial<Row>): Record<string, string | number | null> {
   const cols = new Set(tableColumns(db, table));
-  const out: Record<string, string | number> = {};
+  const out: Record<string, string | number | null> = {};
   for (const [k, v] of Object.entries(data)) {
     if (k === 'id') continue;
     if (!cols.has(k)) continue;
-    if (v === null || v === undefined) continue;
+    // 仅跳过“未提供”（undefined）；显式 null 必须保留，用于把可空列（如 idcard）清空
+    if (v === undefined) continue;
     out[k] = v;
   }
   return out;
@@ -53,12 +54,15 @@ export function get(db: DatabaseSync, resource: ResourceKey, id: number): Row | 
 export function create(db: DatabaseSync, resource: ResourceKey, data: Partial<Row>): Row {
   const t = table(resource);
   const clean = sanitize(db, t, data);
-  const keys = Object.keys(clean);
+  // null 值不进 INSERT 列：落到列的 NULL 默认值（idcard），避免给 NOT NULL 列显式写 null
+  const keys = Object.keys(clean).filter(k => clean[k] !== null);
   if (keys.length === 0) throw new Error('没有可写入的字段');
   const cols = keys.map(k => `"${k}"`).join(', ');
   const params = keys.map(k => `@${k}`).join(', ');
+  const values: Record<string, string | number> = {};
+  for (const k of keys) values[k] = clean[k] as string | number;
   const stmt = db.prepare(`INSERT INTO ${t} (${cols}) VALUES (${params})`);
-  const result = stmt.run({ ...clean });
+  const result = stmt.run(values);
   return get(db, resource, Number(result.lastInsertRowid))!;
 }
 

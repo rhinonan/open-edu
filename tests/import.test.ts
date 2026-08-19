@@ -21,7 +21,7 @@ const item = (p: Partial<ImportItem>): ImportItem => ({
 describe('importStudents', () => {
   it('新身份证 → INSERT', () => {
     const db = makeDb();
-    const r = importStudents(db, [item({ idcard: '430102201303010011', name: '新增生' })]);
+    const r = importStudents(db, [item({ idcard: '430102199001010011', name: '新增生' })]);
     expect(r.created).toBe(1);
     expect(r.updated).toBe(0);
     expect(list(db, 'students').length).toBe(46);
@@ -63,9 +63,9 @@ describe('importStudents', () => {
 
   it('新身份证空学号 → INSERT 并自动取 max+1', () => {
     const db = makeDb();
-    const r = importStudents(db, [item({ idcard: '430102201303020022', name: '无学号生' })]);
+    const r = importStudents(db, [item({ idcard: '430102199001020022', name: '无学号生' })]);
     expect(r.created).toBe(1);
-    const row = list(db, 'students').find(x => x.idcard === '430102201303020022');
+    const row = list(db, 'students').find(x => x.idcard === '430102199001020022');
     expect(row?.student_no).toBe('46');
   });
 
