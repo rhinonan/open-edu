@@ -3,7 +3,7 @@ services:
     image: ghcr.io/rhinonan/open-edu:latest
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "3004:3004"
     volumes:
       - open-edu-data:/app/data
 

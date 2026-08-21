@@ -8,17 +8,17 @@
 
 ```bash
 npm install
-npm run dev        # 开发模式，绑定 0.0.0.0:3000
+npm run dev        # 开发模式，绑定 0.0.0.0:3004
 ```
 
 或生产模式：
 
 ```bash
 npm run build
-npm start          # http://电脑局域网IP:3000
+npm start          # http://电脑局域网IP:3004
 ```
 
-手机连同一 Wi-Fi，用浏览器打开 `http://电脑局域网IP:3000`。
+手机连同一 Wi-Fi，用浏览器打开 `http://电脑局域网IP:3004`。
 
 ## 数据说明
 
