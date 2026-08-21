@@ -1,6 +1,13 @@
 import type { Metadata } from 'next';
+import { AntdRegistry } from '@ant-design/nextjs-registry';
+import { App, ConfigProvider } from 'antd';
+import zhCN from 'antd/locale/zh_CN';
+import dayjs from 'dayjs';
+import 'dayjs/locale/zh-cn';
 import './globals.css';
 import AppShell from '@/components/app-shell';
+
+dayjs.locale('zh-cn');
 
 export const metadata: Metadata = {
   title: '班主任智慧工作台',
@@ -11,7 +18,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="zh-CN">
       <body>
-        <AppShell>{children}</AppShell>
+        <AntdRegistry>
+          <ConfigProvider locale={zhCN}>
+            <App>
+              <AppShell>{children}</AppShell>
+            </App>
+          </ConfigProvider>
+        </AntdRegistry>
       </body>
     </html>
   );
