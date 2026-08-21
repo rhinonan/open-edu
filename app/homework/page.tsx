@@ -1,97 +1,131 @@
 'use client';
-import { useState } from 'react';
-import CrudPage from '@/components/crud/crud-page';
-import Modal from '@/components/ui/modal';
-import { put } from '@/lib/api-client';
+import { useMemo, useState } from 'react';
+import { App, Button, Card, DatePicker, Form, Input, InputNumber, Modal, Progress, Select, Statistic, Table } from 'antd';
+import type { TableColumnsType } from 'antd';
 import type { Row } from '@/lib/types';
-import { useToast } from '@/components/ui/toast';
-import type { CrudPageConfig } from '@/components/crud/types';
+import { useResourceRows } from '@/components/use-resource';
+import EditableCell from '@/components/editable-cell';
+import TableToolbar, { useColumnVisibility } from '@/components/table-toolbar';
+import dayjs from 'dayjs';
 
-function totalOf(r: Row) { return Number(r.submitted) + Number(r.late) + Number(r.missing); }
+const SUBJECTS = ['语文', '数学', '英语', '科学', '道德与法治'];
+const TOOLBAR_COLS = [
+  { key: 'subject', label: '学科' }, { key: 'assign_date', label: '布置日期' },
+  { key: 'requirement', label: '作业要求' }, { key: 'deadline', label: '截止时间' },
+  { key: 'submitted', label: '已交' }, { key: 'late', label: '迟交' },
+  { key: 'missing', label: '未交' }, { key: 'missing_names', label: '未交学生' },
+];
 
-function ProgressBar({ row }: { row: Row }) {
-  const total = totalOf(row);
-  const pct = total > 0 ? Math.round((Number(row.submitted) / total) * 100) : 0;
-  return (
-    <div className="flex items-center gap-2 min-w-40">
-      <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
-        <div className="h-full bg-red-500 transition-all" style={{ width: `${pct}%` }} />
-      </div>
-      <span className="text-xs text-slate-500 whitespace-nowrap">{pct}%（已交 {row.submitted} · 迟交 {row.late} · 未交 {row.missing}）</span>
-    </div>
-  );
-}
-
-export function CollectButton({ row, onCollect }: { row: Row; onCollect: (r: Row) => void }) {
-  return <button className="text-xs text-accent hover:underline" onClick={() => onCollect(row)}>录入收缴</button>;
-}
+const totalOf = (r: Row) => Number(r.submitted) + Number(r.late) + Number(r.missing);
 
 export default function HomeworkPage() {
-  const { toast } = useToast();
+  const { message } = App.useApp();
+  const { rows, loading, update, create, remove } = useResourceRows('homework');
+  const { hidden, toggle } = useColumnVisibility('gzt:cols:homework');
+  const [addOpen, setAddOpen] = useState(false);
   const [collecting, setCollecting] = useState<Row | null>(null);
-  const [draft, setDraft] = useState<Record<string, string>>({});
-  const [reload, setReload] = useState(0);
+  const [form] = Form.useForm();
 
-  const config: CrudPageConfig = {
-    resource: 'homework',
-    title: '作业管理',
-    columns: [
-      { key: 'subject', label: '学科', type: 'select', options: ['语文', '数学', '英语', '科学', '道德与法治'], width: '110px' },
-      { key: 'assign_date', label: '布置日期', type: 'date', width: '120px' },
-      { key: 'requirement', label: '作业要求', type: 'textarea', width: '220px' },
-      { key: 'deadline', label: '截止时间', type: 'date', width: '120px' },
-      { key: 'submitted', label: '已交', type: 'number', width: '70px' },
-      { key: 'late', label: '迟交', type: 'number', width: '70px' },
-      { key: 'missing', label: '未交', type: 'number', width: '70px' },
-      { key: 'missing_names', label: '未交学生', type: 'text' },
-      { key: 'progress', label: '收缴进度', readOnly: true, render: r => <ProgressBar row={r} /> },
-      { key: 'collect', label: '操作', readOnly: true, render: r => <CollectButton row={r} onCollect={openCollect} /> },
-    ],
-    stats: rows => {
-      const total = rows.length;
-      const avg = total > 0 ? Math.round(rows.reduce((s, r) => s + (totalOf(r) > 0 ? Number(r.submitted) / totalOf(r) : 0), 0) / total * 100) : 0;
-      const missingAll = rows.reduce((s, r) => s + Number(r.missing), 0);
-      return [
-        { label: '累计布置作业', value: total, tone: 'blue' },
-        { label: '平均提交率', value: `${avg}%`, tone: 'teal' },
-        { label: '累计未交人次', value: missingAll, tone: 'red' },
-      ];
-    },
-    defaultNewRow: () => ({ subject: '语文', assign_date: '', requirement: '', deadline: '', submitted: 0, late: 0, missing: 0, missing_names: '' }),
+  const columns: TableColumnsType<Row> = useMemo(() => {
+    const base = TOOLBAR_COLS.filter(c => !hidden.has(c.key)).map(c => ({
+      title: c.label,
+      dataIndex: c.key,
+      width: c.key === 'requirement' ? 220 : c.key === 'missing_names' ? 160 : undefined,
+      render: (_: unknown, r: Row) => (
+        <EditableCell
+          value={r[c.key]}
+          type={c.key === 'subject' ? 'select' : (c.key === 'assign_date' || c.key === 'deadline') ? 'date' : c.key === 'requirement' ? 'textarea'
+            : (c.key === 'submitted' || c.key === 'late' || c.key === 'missing') ? 'number' : 'text'}
+          options={c.key === 'subject' ? SUBJECTS : undefined}
+          onSave={v => update(r.id as number, { [c.key]: v })}
+        />
+      ),
+    }));
+    return [
+      ...base,
+      {
+        title: '收缴进度', key: 'progress', width: 260,
+        render: (_: unknown, r: Row) => {
+          const total = totalOf(r);
+          const pct = total > 0 ? Math.round((Number(r.submitted) / total) * 100) : 0;
+          return <Progress percent={pct} size="small" format={() => `${pct}%（已交 ${r.submitted}·迟交 ${r.late}·未交 ${r.missing}）`} />;
+        },
+      },
+      {
+        title: '操作', key: 'op', width: 120, fixed: 'right', exportable: false,
+        render: (_: unknown, r: Row) => (
+          <div className="flex">
+            <Button type="link" size="small" onClick={() => {
+              setCollecting(r);
+              form.setFieldsValue({ submitted: r.submitted, late: r.late, missing: r.missing });
+            }}>录入收缴</Button>
+            <Button type="link" danger size="small" onClick={async () => {
+              try { await remove(r.id as number); message.success('已删除'); } catch { message.error('删除失败'); }
+            }}>删除</Button>
+          </div>
+        ),
+      },
+    ];
+  }, [hidden, update, remove, form, message]);
+
+  const stats = useMemo(() => {
+    const avg = rows.length ? Math.round(rows.reduce((s, r) => s + (totalOf(r) > 0 ? Number(r.submitted) / totalOf(r) : 0), 0) / rows.length * 100) : 0;
+    const missingAll = rows.reduce((s, r) => s + Number(r.missing), 0);
+    return [
+      { title: '累计布置作业', value: rows.length },
+      { title: '平均提交率', value: `${avg}%` },
+      { title: '累计未交人次', value: missingAll },
+    ];
+  }, [rows]);
+
+  const submit = async () => {
+    try {
+      const v = await form.validateFields();
+      await create({
+        subject: v.subject ?? '语文',
+        assign_date: v.assign_date ? v.assign_date.format('YYYY-MM-DD') : '',
+        requirement: v.requirement ?? '',
+        deadline: v.deadline ? v.deadline.format('YYYY-MM-DD') : '',
+        submitted: v.submitted ?? 0, late: v.late ?? 0, missing: v.missing ?? 0, missing_names: v.missing_names ?? '',
+      });
+      message.success('已新增');
+      setAddOpen(false); form.resetFields();
+    } catch { /* 校验/请求失败 */ }
   };
-
-  const openCollect = (r: Row) => { setCollecting(r); setDraft({ submitted: String(r.submitted), late: String(r.late), missing: String(r.missing) }); };
 
   const saveCollect = async () => {
     if (!collecting) return;
     try {
-      await put(`/api/homework/${collecting.id}`, {
-        submitted: Number(draft.submitted) || 0,
-        late: Number(draft.late) || 0,
-        missing: Number(draft.missing) || 0,
-      });
-      toast('已更新收缴情况');
+      const v = await form.validateFields();
+      await update(collecting.id as number, { submitted: v.submitted ?? 0, late: v.late ?? 0, missing: v.missing ?? 0 });
+      message.success('已更新收缴情况');
       setCollecting(null);
-      setReload(n => n + 1);
-    } catch { toast('保存失败', 'err'); }
+    } catch { message.error('保存失败'); }
   };
 
   return (
-    <div key={reload}>
-      <CrudPage config={config} />
-      <Modal title="录入收缴情况" open={!!collecting} onClose={() => setCollecting(null)}>
-        <div className="grid grid-cols-3 gap-3">
-          {[['submitted', '已交'], ['late', '迟交'], ['missing', '未交']].map(([k, label]) => (
-            <label key={k} className="flex flex-col gap-1 text-xs text-slate-500">
-              {label}
-              <input type="number" className="border border-slate-300 rounded px-2 py-1.5 text-sm"
-                value={draft[k] ?? ''} onChange={e => setDraft({ ...draft, [k]: e.target.value })} />
-            </label>
-          ))}
-        </div>
-        <div className="flex justify-end gap-2 mt-4">
-          <button className="btn-primary px-4 py-1.5 text-sm" onClick={saveCollect}>保存</button>
-        </div>
+    <div>
+      <div className="grid grid-cols-3 gap-3 mb-4">
+        {stats.map(s => <Card key={s.title} size="small"><Statistic title={s.title} value={s.value} /></Card>)}
+      </div>
+      <TableToolbar title="作业管理" columns={TOOLBAR_COLS} hidden={hidden} onToggleColumn={toggle} rows={rows} onAdd={() => setAddOpen(true)} />
+      <Table<Row> rowKey="id" columns={columns} dataSource={rows} loading={loading} size="middle" pagination={false} scroll={{ x: 'max-content' }} />
+
+      <Modal title="新增作业" open={addOpen} onCancel={() => setAddOpen(false)} onOk={submit} okText="保存" cancelText="取消">
+        <Form form={form} layout="vertical">
+          <Form.Item name="subject" label="学科" initialValue="语文"><Select options={SUBJECTS.map(s => ({ value: s, label: s }))} /></Form.Item>
+          <Form.Item name="assign_date" label="布置日期"><DatePicker style={{ width: '100%' }} /></Form.Item>
+          <Form.Item name="requirement" label="作业要求"><Input.TextArea rows={2} /></Form.Item>
+          <Form.Item name="deadline" label="截止时间"><DatePicker style={{ width: '100%' }} /></Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal title="录入收缴情况" open={!!collecting} onCancel={() => setCollecting(null)} onOk={saveCollect} okText="保存" cancelText="取消">
+        <Form form={form} layout="vertical">
+          <Form.Item name="submitted" label="已交"><InputNumber min={0} style={{ width: '100%' }} /></Form.Item>
+          <Form.Item name="late" label="迟交"><InputNumber min={0} style={{ width: '100%' }} /></Form.Item>
+          <Form.Item name="missing" label="未交"><InputNumber min={0} style={{ width: '100%' }} /></Form.Item>
+        </Form>
       </Modal>
     </div>
   );
