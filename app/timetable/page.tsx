@@ -1,18 +1,17 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
-import { get, put } from '@/lib/api-client';
-import type { Row } from '@/lib/types';
-import ChartCard from '@/components/ui/chart-card';
-import InlineEdit from '@/components/ui/inline-edit';
+import { useMemo } from 'react';
+import { Card, Typography } from 'antd';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useResourceRows } from '@/components/use-resource';
+import type { Row } from '@/lib/types';
+import EditableCell from '@/components/editable-cell';
 
 const DAYS = ['周一', '周二', '周三', '周四', '周五'];
 const PERIODS = ['早读', '正课', '正课', '正课', '中午托', '下午托'];
 const SUBJECTS = ['语文', '数学', '英语', '科学', '道德与法治', '体育', '音乐', '美术', '班会', '劳动', '自习', ''];
 
 export default function TimetablePage() {
-  const [rows, setRows] = useState<Row[]>([]);
-  useEffect(() => { get<Row[]>('/api/timetable').then(setRows); }, []);
+  const { rows, loading, update } = useResourceRows('timetable');
 
   const grid = useMemo(() => {
     const m = new Map<string, Row>();
@@ -26,20 +25,10 @@ export default function TimetablePage() {
     return m;
   }, [rows]);
 
-  const update = async (id: number, patch: Partial<Row>) => {
-    try {
-      const u = await put<Row>(`/api/timetable/${id}`, patch);
-      setRows(rows.map(r => r.id === id ? u : r));
-    } catch (e) {
-      throw e; // 让 InlineEdit 统一弹「保存失败」（与成绩/日程页一致）
-    }
-  };
-
-  const stats = useMemo(() => {
-    const total = rows.length;
-    const chinese = rows.filter(r => r.is_chinese == 1).length;
-    return { total, chinese };
-  }, [rows]);
+  const stats = useMemo(() => ({
+    total: rows.length,
+    chinese: rows.filter(r => r.is_chinese == 1).length,
+  }), [rows]);
 
   const bySubject = useMemo(() => {
     const m = new Map<string, number>();
@@ -49,31 +38,31 @@ export default function TimetablePage() {
 
   return (
     <div>
-      <h1 className="text-lg font-semibold text-slate-800 mb-4">我的课表</h1>
+      <Typography.Title level={4} style={{ marginTop: 0 }}>我的课表</Typography.Title>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-        <div className="card px-4 py-3"><div className="text-xs text-slate-500">每周总课时</div><div className="text-xl font-semibold mt-1">{stats.total}</div></div>
-        <div className="card px-4 py-3"><div className="text-xs text-slate-500">语文任教课时</div><div className="text-xl font-semibold mt-1 text-blue-600">{stats.chinese}</div></div>
+        <Card size="small"><div className="text-xs text-slate-500">每周总课时</div><div className="text-xl font-semibold mt-0.5">{stats.total}</div></Card>
+        <Card size="small"><div className="text-xs text-slate-500">语文任教课时</div><div className="text-xl font-semibold mt-0.5 text-blue-600">{stats.chinese}</div></Card>
       </div>
-      <div className="card overflow-x-auto mb-4">
+      <Card size="small" className="overflow-x-auto mb-4" loading={loading}>
         <table className="w-full text-sm border-collapse">
           <thead>
-            <tr className="bg-slate-50 text-slate-500 text-xs">
-              <th className="px-2 py-2 border-b border-slate-200 text-left">时段</th>
-              {DAYS.map(d => <th key={d} className="px-2 py-2 border-b border-slate-200">{d}</th>)}
+            <tr className="bg-gray-50 text-xs text-slate-500">
+              <th className="px-2 py-2 text-left border-b border-gray-200">时段</th>
+              {DAYS.map(d => <th key={d} className="px-2 py-2 border-b border-gray-200">{d}</th>)}
             </tr>
           </thead>
           <tbody>
             {PERIODS.map((period, i) => (
               <tr key={i}>
-                <td className="px-2 py-2 border-b border-slate-100 text-xs text-slate-500 whitespace-nowrap">{period}{i > 0 && i < 4 ? i : ''}</td>
+                <td className="px-2 py-2 border-b border-gray-100 text-xs text-slate-500 whitespace-nowrap">{period}{i > 0 && i < 4 ? i : ''}</td>
                 {DAYS.map(d => {
                   const key = `${DAYS.indexOf(d) + 1}-${i}`;
                   const r = grid.get(key);
-                  if (!r) return <td key={key} className="px-2 py-2 border-b border-slate-100"></td>;
+                  if (!r) return <td key={key} className="px-2 py-2 border-b border-gray-100" />;
                   const chinese = r.is_chinese == 1;
                   return (
-                    <td key={key} className={`px-2 py-2 border-b border-slate-100 text-center ${chinese ? 'bg-blue-50' : ''}`}>
-                      <InlineEdit
+                    <td key={key} className={`px-2 py-2 border-b border-gray-100 text-center ${chinese ? 'bg-blue-50' : ''}`}>
+                      <EditableCell
                         value={r.subject}
                         type="select"
                         options={SUBJECTS}
@@ -87,18 +76,20 @@ export default function TimetablePage() {
             ))}
           </tbody>
         </table>
-      </div>
-      <ChartCard title="课时分布（按学科）">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={bySubject}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="name" />
-            <YAxis allowDecimals={false} />
-            <Tooltip />
-            <Bar dataKey="课时" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </ChartCard>
+      </Card>
+      <Card size="small"><h3 className="mb-3 text-sm font-semibold text-slate-600" style={{ marginTop: 0 }}>课时分布（按学科）</h3>
+        <div className="h-56">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={bySubject}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="name" />
+              <YAxis allowDecimals={false} />
+              <Tooltip />
+              <Bar dataKey="课时" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </Card>
     </div>
   );
 }
