@@ -108,10 +108,10 @@ export default function HomeworkPage() {
       <div className="grid grid-cols-3 gap-3 mb-4">
         {stats.map(s => <Card key={s.title} size="small"><Statistic title={s.title} value={s.value} /></Card>)}
       </div>
-      <TableToolbar title="作业管理" columns={TOOLBAR_COLS} hidden={hidden} onToggleColumn={toggle} rows={rows} onAdd={() => setAddOpen(true)} />
+      <TableToolbar title="作业管理" columns={TOOLBAR_COLS} hidden={hidden} onToggleColumn={toggle} rows={rows} onAdd={() => { form.resetFields(); setAddOpen(true); }} />
       <Table<Row> rowKey="id" columns={columns} dataSource={rows} loading={loading} size="middle" pagination={false} scroll={{ x: 'max-content' }} />
 
-      <Modal title="新增作业" open={addOpen} onCancel={() => setAddOpen(false)} onOk={submit} okText="保存" cancelText="取消">
+      <Modal title="新增作业" open={addOpen} onCancel={() => { setAddOpen(false); form.resetFields(); }} onOk={submit} okText="保存" cancelText="取消">
         <Form form={form} layout="vertical">
           <Form.Item name="subject" label="学科" initialValue="语文"><Select options={SUBJECTS.map(s => ({ value: s, label: s }))} /></Form.Item>
           <Form.Item name="assign_date" label="布置日期"><DatePicker style={{ width: '100%' }} /></Form.Item>
