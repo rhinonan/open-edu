@@ -6,6 +6,7 @@ import dayjs from 'dayjs';
 import 'dayjs/locale/zh-cn';
 import './globals.css';
 import AppShell from '@/components/app-shell';
+import DayjsLocale from '@/components/dayjs-locale';
 
 dayjs.locale('zh-cn');
 
@@ -21,6 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AntdRegistry>
           <ConfigProvider locale={zhCN}>
             <App>
+              <DayjsLocale />
               <AppShell>{children}</AppShell>
             </App>
           </ConfigProvider>
