@@ -1,0 +1,12 @@
+node_modules
+.next
+.git
+.gitignore
+data
+docs
+tests
+.superpowers
+*.md
+.env*
+.DS_Store
+*.tsbuildinfo
