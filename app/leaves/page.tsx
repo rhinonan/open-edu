@@ -1,6 +1,6 @@
 'use client';
 import { useMemo, useState } from 'react';
-import { App, Button, Card, DatePicker, Form, Input, InputNumber, Modal, Select, Statistic, Table } from 'antd';
+import { App, Button, Card, DatePicker, Form, Input, InputNumber, Modal, Popconfirm, Select, Statistic, Table } from 'antd';
 import type { TableColumnsType } from 'antd';
 import type { Row } from '@/lib/types';
 import { useResourceRows } from '@/components/use-resource';
@@ -38,9 +38,9 @@ export default function LeavesPage() {
     {
       title: '操作', key: 'op', width: 64, fixed: 'right', exportable: false,
       render: (_: unknown, r: Row) => (
-        <Button type="link" danger size="small" onClick={async () => {
-          try { await remove(r.id as number); message.success('已删除'); } catch { message.error('删除失败'); }
-        }}>删除</Button>
+        <Popconfirm title="确定删除该记录？" okText="删除" cancelText="取消" onConfirm={async () => { try { await remove(r.id as number); message.success('已删除'); } catch { message.error('删除失败'); } }}>
+          <Button type="link" danger size="small">删除</Button>
+        </Popconfirm>
       ),
     },
   ], [hidden, update, remove, message]);
