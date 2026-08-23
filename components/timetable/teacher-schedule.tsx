@@ -1,6 +1,6 @@
 'use client';
 import { useMemo, useState } from 'react';
-import { Button, Card, Table, Tag, Typography } from 'antd';
+import { App, Button, Card, Popconfirm, Table, Tag, Typography } from 'antd';
 import type { TableProps } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { useResourceRows } from '@/components/use-resource';
@@ -14,6 +14,7 @@ export default function TeacherSchedule() {
   const { rows: slots } = useResourceRows('period_slots');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Row | null>(null);
+  const { message } = App.useApp();
 
   const slotById = useMemo(() => new Map(slots.map(s => [Number(s.id), s])), [slots]);
   const orderedSlots = useMemo(() => [...slots].sort((a, b) => Number(a.seq) - Number(b.seq)), [slots]);
@@ -48,7 +49,9 @@ export default function TeacherSchedule() {
       render: (_: unknown, r: Row) => (
         <div className="space-x-2">
           <Button size="small" onClick={() => { setEditing(r); setModalOpen(true); }}>编辑</Button>
-          <Button size="small" danger onClick={() => void remove(r.id as number)}>删除</Button>
+          <Popconfirm title="确定删除该记录？" okText="删除" cancelText="取消" onConfirm={async () => { try { await remove(r.id as number); message.success('已删除'); } catch { message.error('删除失败'); } }}>
+            <Button size="small" danger>删除</Button>
+          </Popconfirm>
         </div>
       ),
     },

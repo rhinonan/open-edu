@@ -1,6 +1,6 @@
 'use client';
 import { useEffect } from 'react';
-import { Modal, Form, Select, Input } from 'antd';
+import { App, Modal, Form, Select, Input } from 'antd';
 import type { Row } from '@/lib/types';
 
 const WEEKDAYS = ['周一', '周二', '周三', '周四', '周五'];
@@ -15,6 +15,7 @@ export default function TeacherScheduleModal({ open, onClose, editing, slots, on
   slots: Row[];
   onSave: (v: Values) => Promise<void>;
 }) {
+  const { message } = App.useApp();
   const [form] = Form.useForm();
   const slotOptions = [...slots].sort((a, b) => Number(a.seq) - Number(b.seq))
     .map(s => ({ value: Number(s.id), label: `${s.name} ${s.start_time}-${s.end_time}` }));
@@ -32,8 +33,12 @@ export default function TeacherScheduleModal({ open, onClose, editing, slots, on
 
   const submit = async () => {
     const v = await form.validateFields();
-    await onSave({ weekday: Number(v.weekday), period_id: Number(v.period_id), class_name: v.class_name, subject: v.subject, remark: v.remark ?? '' });
-    onClose();
+    try {
+      await onSave({ weekday: Number(v.weekday), period_id: Number(v.period_id), class_name: v.class_name, subject: v.subject, remark: v.remark ?? '' });
+      onClose();
+    } catch {
+      message.error('保存失败');
+    }
   };
 
   return (
