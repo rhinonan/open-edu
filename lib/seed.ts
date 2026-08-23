@@ -66,7 +66,7 @@ export function seedIfEmpty(db: DatabaseSync): void {
     ('male_count', '23'),
     ('female_count', '22')`).run();
 
-  db.prepare(`INSERT INTO classroom_config (row_count, col_count, desk_label) VALUES (6, 8, '双人课桌')`).run();
+  db.prepare(`INSERT INTO classroom_config (row_count, col_count, desk_label) VALUES (7, 8, '双人课桌')`).run();
 
   // 时段定义：早自习 + 上午正课4 + 中午托 + 陪餐 + 下午正课3 + 下午托（共 11 个）
   const slots: [string, string, string, string][] = [

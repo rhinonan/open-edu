@@ -27,7 +27,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_students_idcard ON students(idcard);
 
 CREATE TABLE IF NOT EXISTS classroom_config (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  row_count INTEGER NOT NULL DEFAULT 6,
+  row_count INTEGER NOT NULL DEFAULT 7,
   col_count INTEGER NOT NULL DEFAULT 8,
   desk_label TEXT NOT NULL DEFAULT '双人课桌'
 );
