@@ -3,7 +3,8 @@ export type Row = Record<string, string | number | null>;
 export type ResourceKey =
   | 'settings' | 'students' | 'classroom_config' | 'leave_records'
   | 'discipline_records' | 'grades'
-  | 'timetable' | 'todos' | 'conversations' | 'home_visits'
+  | 'timetable' | 'period_slots' | 'teacher_schedule'
+  | 'todos' | 'conversations' | 'home_visits'
   | 'evaluation' | 'parent_comm' | 'safety_logs'
   | 'work_logs' | 'seats';
 

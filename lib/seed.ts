@@ -68,18 +68,39 @@ export function seedIfEmpty(db: DatabaseSync): void {
 
   db.prepare(`INSERT INTO classroom_config (row_count, col_count, desk_label) VALUES (6, 8, '双人课桌')`).run();
 
-  // 课表：周一~周五，早读/正课/中午托/下午托；语文标 is_chinese=1
-  const periods = ['早读', '正课', '正课', '正课', '中午托', '下午托'];
-  const subjects = ['语文', '数学', '英语', '科学', '道德与法治', '体育', '音乐', '美术', '班会', '劳动'];
-  const tt = db.prepare(`INSERT INTO timetable (weekday, period, subject, is_chinese) VALUES (?, ?, ?, ?)`);
+  // 时段定义：早自习 + 上午正课4 + 中午托 + 陪餐 + 下午正课3 + 下午托（共 11 个）
+  const slots: [string, string, string, string][] = [
+    ['早自习', '08:00', '08:20', '自习'],
+    ['上午第1节', '08:25', '09:05', '正课'],
+    ['上午第2节', '09:15', '09:55', '正课'],
+    ['上午第3节', '10:05', '10:45', '正课'],
+    ['上午第4节', '10:55', '11:35', '正课'],
+    ['中午托', '11:40', '12:10', '托管'],
+    ['陪餐', '12:10', '12:40', '陪餐'],
+    ['下午第1节', '14:00', '14:40', '正课'],
+    ['下午第2节', '14:50', '15:30', '正课'],
+    ['下午第3节', '15:40', '16:20', '正课'],
+    ['下午托', '16:20', '17:00', '托管'],
+  ];
+  const insSlot = db.prepare(`INSERT INTO period_slots (seq, name, start_time, end_time, kind) VALUES (?, ?, ?, ?, ?)`);
+  slots.forEach(([name, s, e, kind], i) => insSlot.run(i + 1, name, s, e, kind));
+
+  // 正课科目：语数英科学道法体音美班会劳动；仍用 lib/seed.ts 顶部已有的 subjects 字典改个名避免冲突
+  const ttSubjects = ['语文', '数学', '英语', '科学', '道德与法治', '体育', '音乐', '美术', '班会', '劳动'];
+  const insTt = db.prepare(`INSERT INTO timetable (weekday, period_id, subject, is_chinese) VALUES (?, ?, ?, ?)`);
   for (let wd = 1; wd <= 5; wd++) {
-    periods.forEach(p => {
-      let subject = pick(subjects);
-      if (p === '早读') subject = '语文';
-      if (p === '中午托' || p === '下午托') subject = '自习';
-      tt.run(wd, p, subject, subject === '语文' ? 1 : 0);
+    slots.forEach(([, , , kind], i) => {
+      if (kind !== '正课') return;
+      const subject = pick(ttSubjects);
+      insTt.run(wd, i + 1, subject, subject === '语文' ? 1 : 0);
     });
   }
+
+  // 班主任授课安排（演示）：本班 + 跨班各若干
+  const insTs = db.prepare(`INSERT INTO teacher_schedule (weekday, period_id, class_name, subject, remark) VALUES (?, ?, ?, ?, ?)`);
+  insTs.run(1, 2, '长沙青园小学六年级（1）班', '语文', '本班');
+  insTs.run(2, 9, '六年级（2）班', '数学', '跨班');
+  insTs.run(4, 4, '长沙青园小学六年级（1）班', '语文', '');
 
   // 一次单元测成绩（语数英，45 人）
   const g = db.prepare(`INSERT INTO grades (exam_name, subject, student_name, score) VALUES ('单元小测（一）', ?, ?, ?)`);
@@ -145,7 +166,7 @@ export function seedIfEmpty(db: DatabaseSync): void {
 
 export function resetData(db: DatabaseSync): void {
   const tables = ['todos', 'work_logs', 'safety_logs', 'parent_comm',
-    'evaluation', 'home_visits', 'conversations', 'timetable',
+    'evaluation', 'home_visits', 'conversations', 'timetable', 'period_slots', 'teacher_schedule',
     'grades', 'discipline_records', 'leave_records', 'seats', 'students', 'settings', 'classroom_config'];
   db.exec(tables.map(t => `DROP TABLE IF EXISTS ${t}`).join(';'));
   db.exec(SCHEMA_SQL);

@@ -18,6 +18,10 @@ export function getDb(): DatabaseSync {
     // 以 idcard 作为哨兵列：列不存在即判定为旧库，先重置再重建。
     const studentCols = (db.prepare('PRAGMA table_info(students)').all() as { name: string }[]).map(c => c.name);
     if (studentCols.length > 0 && !studentCols.includes('idcard')) resetData(db);
+    // 旧版 timetable 用 period 文本列；新 schema 改为 period_id 外键列。
+    // 列不存在即判定为旧库，先重置再重建。
+    const ttCols = (db.prepare('PRAGMA table_info(timetable)').all() as { name: string }[]).map(c => c.name);
+    if (ttCols.length > 0 && !ttCols.includes('period_id')) resetData(db);
     db.exec(SCHEMA_SQL);
     seedIfEmpty(db);
   }
