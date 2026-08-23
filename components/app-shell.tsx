@@ -78,7 +78,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     <EditableProvider>
       <Layout style={{ minHeight: '100vh' }}>
         {mobile ? (
-          <Drawer placement="left" width={220} closable={false} open={drawerOpen} onClose={() => setDrawerOpen(false)} styles={{ body: { padding: 0 } }}>
+          <Drawer placement="left" size={220} closable={false} open={drawerOpen} onClose={() => setDrawerOpen(false)} styles={{ body: { padding: 0 } }}>
             {menu}
           </Drawer>
         ) : (
@@ -89,7 +89,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         )}
         <Layout>
           <ShellHeader onOpenDrawer={() => setDrawerOpen(true)} mobile={mobile} />
-          <Layout.Content style={{ padding: 16, width: '100%', maxWidth: 1152, margin: '0 auto' }}>
+          <Layout.Content style={{ padding: 16, width: '100%' }}>
             {children}
           </Layout.Content>
         </Layout>

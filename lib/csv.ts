@@ -1,5 +1,3 @@
-import type { Row } from './types';
-
 export function parseCsv(text: string): string[][] {
   if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
   const rows: string[][] = [];

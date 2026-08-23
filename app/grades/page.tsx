@@ -2,7 +2,6 @@
 import { useMemo, useState } from 'react';
 import { Card, Segmented, Select, Statistic, Typography } from 'antd';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import type { Row } from '@/lib/types';
 import { useResourceRows } from '@/components/use-resource';
 import EditableCell from '@/components/editable-cell';
 import { CategoryColor } from '@/lib/color-utils';

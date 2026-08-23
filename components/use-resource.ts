@@ -14,7 +14,14 @@ export function useResourceRows(resource: ResourceKey) {
       .finally(() => setLoading(false));
   }, [resource]);
 
-  useEffect(() => { void reload(); }, [reload]);
+  // 挂载时加载：只在异步回调里 setState，避免在 effect 主体内同步更新触发级联渲染
+  useEffect(() => {
+    let active = true;
+    get<Row[]>(`/api/${resource}`)
+      .then(r => { if (active) setRows(r); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [resource]);
 
   const update = useCallback(async (id: number, patch: Partial<Row>) => {
     const snapshot = rows.filter(r => r.id === id)[0];
