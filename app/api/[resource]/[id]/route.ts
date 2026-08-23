@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { update, remove, RESOURCES } from '@/lib/store';
+import { removePeriodSlot } from '@/lib/timetable';
 import type { ResourceKey } from '@/lib/types';
 
 type Ctx = { params: Promise<{ resource: string; id: string }> };
@@ -24,6 +25,8 @@ export async function PUT(req: NextRequest, { params }: Ctx) {
 export async function DELETE(_req: NextRequest, { params }: Ctx) {
   const { resource, id } = await params;
   if (!isResource(resource)) return NextResponse.json({ error: '未知资源' }, { status: 404 });
-  remove(getDb(), resource, Number(id));
+  const db = getDb();
+  if (resource === 'period_slots') removePeriodSlot(db, Number(id));
+  else remove(db, resource, Number(id));
   return NextResponse.json({ ok: true });
 }

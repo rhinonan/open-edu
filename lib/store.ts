@@ -9,6 +9,8 @@ export const RESOURCES: Record<ResourceKey, string> = {
   discipline_records: 'discipline_records',
   grades: 'grades',
   timetable: 'timetable',
+  period_slots: 'period_slots',
+  teacher_schedule: 'teacher_schedule',
   todos: 'todos',
   conversations: 'conversations',
   home_visits: 'home_visits',
