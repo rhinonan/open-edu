@@ -86,10 +86,17 @@ describe('纯函数', () => {
     const db = makeDb();
     const tt = query<Row>(db, 'SELECT * FROM timetable');
     const dist = subjectDist(tt);
+    const distinct = [...new Set(tt.map(r => String(r.subject ?? '')).filter(s => s))];
     expect(dist.every(d => d.name)).toBe(true);
     const sum = dist.reduce((a, d) => a + d.课时, 0);
     expect(sum).toBe(35);
-    expect(dist.find(d => d.name === '语文')?.课时).toBeGreaterThanOrEqual(1);
+    // 学科集合与 timetable 中的非空学科一致
+    expect(dist.map(d => d.name).sort()).toEqual([...distinct].sort());
+    // 每种学科的课时数等于 timetable 中该学科的行数
+    const any = dist[0];
+    expect(any).toBeTruthy();
+    const expected = tt.filter(r => String(r.subject) === any.name).length;
+    expect(any.课时).toBe(expected);
   });
 
   it('buildClassGrid 以 `${weekday}-${period_id}` 为键', () => {
