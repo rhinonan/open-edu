@@ -12,12 +12,12 @@ function makeDb() {
 }
 
 describe('schema', () => {
-  it('创建全部 18 张表', () => {
+  it('创建全部 19 张表', () => {
     const { db } = makeDb();
     const tables = (db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all() as { name: string }[]).map(t => t.name);
     expect(tables).toEqual(expect.arrayContaining([
       'classes', 'users', 'sessions', 'students', 'classroom_config', 'leave_records', 'discipline_records',
-      'grades', 'timetable', 'todos', 'conversations',
+      'grades', 'timetable', 'period_slots', 'teacher_schedule', 'todos', 'conversations',
       'home_visits', 'evaluation', 'parent_comm', 'safety_logs',
       'work_logs', 'seats',
     ]));
@@ -51,7 +51,7 @@ describe('seedClass', () => {
     const cc = (db.prepare('SELECT COUNT(*) AS n FROM classroom_config WHERE class_id = ?').get(classId) as { n: number }).n;
     const tt = (db.prepare('SELECT COUNT(*) AS n FROM timetable WHERE class_id = ?').get(classId) as { n: number }).n;
     expect(cc).toBe(1);
-    expect(tt).toBe(30);
+    expect(tt).toBe(35);
   });
 });
 

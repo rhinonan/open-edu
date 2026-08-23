@@ -26,8 +26,31 @@ function fakeIdcard(i: number): string {
   return body + map[sum % 11];
 }
 
+/** 播种全局时段定义（学校一天 11 个时段）。全局资源，仅在空表时插入，幂等。 */
+export function seedPeriodSlots(db: DatabaseSync): void {
+  const n = (db.prepare('SELECT COUNT(*) AS n FROM period_slots').get() as { n: number }).n;
+  if (n > 0) return;
+  const slots: [string, string, string, string][] = [
+    ['早自习', '08:00', '08:20', '自习'],
+    ['上午第1节', '08:25', '09:05', '正课'],
+    ['上午第2节', '09:15', '09:55', '正课'],
+    ['上午第3节', '10:05', '10:45', '正课'],
+    ['上午第4节', '10:55', '11:35', '正课'],
+    ['中午托', '11:40', '12:10', '托管'],
+    ['陪餐', '12:10', '12:40', '陪餐'],
+    ['下午第1节', '14:00', '14:40', '正课'],
+    ['下午第2节', '14:50', '15:30', '正课'],
+    ['下午第3节', '15:40', '16:20', '正课'],
+    ['下午托', '16:20', '17:00', '托管'],
+  ];
+  const ins = db.prepare(`INSERT INTO period_slots (seq, name, start_time, end_time, kind) VALUES (?, ?, ?, ?, ?)`);
+  slots.forEach(([name, s, e, kind], i) => ins.run(i + 1, name, s, e, kind));
+}
+
 /** 为指定班级灌入一套完整演示数据（45 名学生 + 班级配置 + 课表 + 成绩 + 各类业务行） */
 export function seedClass(db: DatabaseSync, classId: number): void {
+  seedPeriodSlots(db);
+
   const ins = db.prepare(`INSERT INTO students (class_id, student_no, name, gender, parent_name, parent_phone, idcard, address, level, group_no, role, noon_care, breakfast, afternoon_care, remark)
     VALUES (@classId, @student_no, @name, @gender, @parent_name, @phone, @idcard, @address, @level, @group, @role, @noon, @breakfast, @care, '')`);
   const students = uniqueNames(45);
@@ -52,17 +75,23 @@ export function seedClass(db: DatabaseSync, classId: number): void {
 
   db.prepare(`INSERT INTO classroom_config (class_id, row_count, col_count, desk_label) VALUES (?, 7, 8, '双人课桌')`).run(classId);
 
-  const periods = ['早读', '正课', '正课', '正课', '中午托', '下午托'];
+  // 班级课表：只为「正课」时段生成（7 个正课时段 × 5 天 = 35 行），关联全局 period_slots
+  const slotRows = (db.prepare('SELECT id, kind FROM period_slots ORDER BY seq').all() as { id: number; kind: string }[]);
   const subjects = ['语文', '数学', '英语', '科学', '道德与法治', '体育', '音乐', '美术', '班会', '劳动'];
-  const tt = db.prepare(`INSERT INTO timetable (class_id, weekday, period, subject, is_chinese) VALUES (?, ?, ?, ?, ?)`);
+  const insTt = db.prepare(`INSERT INTO timetable (class_id, weekday, period_id, subject, is_chinese) VALUES (?, ?, ?, ?, ?)`);
   for (let wd = 1; wd <= 5; wd++) {
-    periods.forEach(p => {
-      let subject = pick(subjects);
-      if (p === '早读') subject = '语文';
-      if (p === '中午托' || p === '下午托') subject = '自习';
-      tt.run(classId, wd, p, subject, subject === '语文' ? 1 : 0);
-    });
+    for (const s of slotRows) {
+      if (s.kind !== '正课') continue;
+      const subject = pick(subjects);
+      insTt.run(classId, wd, s.id, subject, subject === '语文' ? 1 : 0);
+    }
   }
+
+  // 班主任授课安排（演示）：本班 + 跨班各若干（class_id 均归属当前班，跨班仅 class_name 文本指向他班）
+  const insTs = db.prepare(`INSERT INTO teacher_schedule (class_id, weekday, period_id, class_name, subject, remark) VALUES (?, ?, ?, ?, ?, ?)`);
+  insTs.run(classId, 1, 2, '长沙青园小学六年级（1）班', '语文', '本班');
+  insTs.run(classId, 2, 9, '六年级（2）班', '数学', '跨班');
+  insTs.run(classId, 4, 4, '长沙青园小学六年级（1）班', '语文', '');
 
   const g = db.prepare(`INSERT INTO grades (class_id, exam_name, subject, student_name, score) VALUES (?, '单元小测（一）', ?, ?, ?)`);
   for (const s of students) for (const subj of ['语文', '数学', '英语']) g.run(classId, subj, s, 60 + rand(40));
@@ -125,7 +154,7 @@ export function bootstrap(db: DatabaseSync): { createdAdmin: boolean } {
 /** 重置某一班级：删除其全部业务行并重新播种 */
 export function resetClass(db: DatabaseSync, classId: number): void {
   const childTables = ['todos', 'work_logs', 'safety_logs', 'parent_comm', 'evaluation', 'home_visits',
-    'conversations', 'timetable', 'grades', 'discipline_records', 'leave_records', 'seats', 'students', 'classroom_config'];
+    'conversations', 'timetable', 'teacher_schedule', 'grades', 'discipline_records', 'leave_records', 'seats', 'students', 'classroom_config'];
   for (const t of childTables) db.prepare(`DELETE FROM ${t} WHERE class_id = ?`).run(classId);
   seedClass(db, classId);
 }
@@ -133,7 +162,7 @@ export function resetClass(db: DatabaseSync, classId: number): void {
 /** 全库重置（启动自愈用）：DROP 全部 → 重建 → 引导 */
 export function resetData(db: DatabaseSync): void {
   const tables = ['sessions', 'work_logs', 'safety_logs', 'parent_comm', 'evaluation', 'home_visits',
-    'conversations', 'timetable', 'grades', 'discipline_records', 'leave_records', 'seats', 'students',
+    'conversations', 'timetable', 'period_slots', 'teacher_schedule', 'grades', 'discipline_records', 'leave_records', 'seats', 'students',
     'classroom_config', 'users', 'classes'];
   db.exec(tables.map(t => `DROP TABLE IF EXISTS ${t}`).join(';'));
   db.exec(SCHEMA_SQL);

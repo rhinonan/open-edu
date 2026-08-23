@@ -8,6 +8,8 @@ export const RESOURCES: Record<ResourceKey, string> = {
   discipline_records: 'discipline_records',
   grades: 'grades',
   timetable: 'timetable',
+  period_slots: 'period_slots',
+  teacher_schedule: 'teacher_schedule',
   todos: 'todos',
   conversations: 'conversations',
   home_visits: 'home_visits',
@@ -18,11 +20,15 @@ export const RESOURCES: Record<ResourceKey, string> = {
   seats: 'seats',
 };
 
+// 无 class_id、不做班级作用域的全局资源
+const GLOBAL = new Set<ResourceKey>(['period_slots']);
+const isGlobal = (r: ResourceKey) => GLOBAL.has(r);
+
 export function tableColumns(db: DatabaseSync, table: string): string[] {
   return (db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[]).map(c => c.name);
 }
 
-// class_id 由服务端注入：无论客户端传什么，永远剥离，再在写语句里由本层补上真实值
+// class_id 由服务端注入；id/class_id 一律剥离
 const OUT = new Set(['id', 'class_id']);
 
 function sanitize(db: DatabaseSync, table: string, data: Partial<Row>): Record<string, string | number | null> {
@@ -42,18 +48,30 @@ function table(resource: ResourceKey): string {
 }
 
 export function list(db: DatabaseSync, resource: ResourceKey, classId: number): Row[] {
-  return db.prepare(`SELECT * FROM ${table(resource)} WHERE class_id = ? ORDER BY id`).all(classId) as Row[];
+  const t = table(resource);
+  if (isGlobal(resource)) return db.prepare(`SELECT * FROM ${t} ORDER BY id`).all() as Row[];
+  return db.prepare(`SELECT * FROM ${t} WHERE class_id = ? ORDER BY id`).all(classId) as Row[];
 }
 
 export function get(db: DatabaseSync, resource: ResourceKey, id: number, classId: number): Row | undefined {
-  return db.prepare(`SELECT * FROM ${table(resource)} WHERE id = ? AND class_id = ?`).get(id, classId) as Row | undefined;
+  const t = table(resource);
+  if (isGlobal(resource)) return db.prepare(`SELECT * FROM ${t} WHERE id = ?`).get(id) as Row | undefined;
+  return db.prepare(`SELECT * FROM ${t} WHERE id = ? AND class_id = ?`).get(id, classId) as Row | undefined;
 }
 
 export function create(db: DatabaseSync, resource: ResourceKey, data: Partial<Row>, classId: number): Row {
   const t = table(resource);
   const clean = sanitize(db, t, data);
-  // null 值不进 INSERT 列（落到列的 NULL 默认值，如 idcard），class_id 由本层注入
   const keys = Object.keys(clean).filter(k => clean[k] !== null);
+  if (isGlobal(resource)) {
+    if (keys.length === 0) throw new Error('没有可写入的字段');
+    const cols = keys.map(k => `"${k}"`).join(', ');
+    const params = keys.map(k => `@${k}`).join(', ');
+    const values: Record<string, string | number> = {};
+    for (const k of keys) values[k] = clean[k] as string | number;
+    const r = db.prepare(`INSERT INTO ${t} (${cols}) VALUES (${params})`).run(values);
+    return get(db, resource, Number(r.lastInsertRowid), classId)!;
+  }
   const cols = [...keys, 'class_id'];
   const params = cols.map(k => `@${k}`).join(', ');
   const values: Record<string, string | number> = {};
@@ -70,7 +88,10 @@ export function update(db: DatabaseSync, resource: ResourceKey, id: number, data
   const keys = Object.keys(clean);
   if (keys.length > 0) {
     const sets = keys.map(k => `"${k}" = @${k}`).join(', ');
-    db.prepare(`UPDATE ${t} SET ${sets} WHERE id = @id AND class_id = @classId`).run({ ...clean, id, classId });
+    const where = isGlobal(resource) ? `WHERE id = @id` : `WHERE id = @id AND class_id = @classId`;
+    const values: Record<string, string | number | null> = { ...clean, id };
+    if (!isGlobal(resource)) values['classId'] = classId;
+    db.prepare(`UPDATE ${t} SET ${sets} ${where}`).run(values);
   }
   const row = get(db, resource, id, classId);
   if (!row) throw new Error('记录不存在');
@@ -78,5 +99,7 @@ export function update(db: DatabaseSync, resource: ResourceKey, id: number, data
 }
 
 export function remove(db: DatabaseSync, resource: ResourceKey, id: number, classId: number): void {
-  db.prepare(`DELETE FROM ${table(resource)} WHERE id = ? AND class_id = ?`).run(id, classId);
+  const t = table(resource);
+  if (isGlobal(resource)) db.prepare(`DELETE FROM ${t} WHERE id = ?`).run(id);
+  else db.prepare(`DELETE FROM ${t} WHERE id = ? AND class_id = ?`).run(id, classId);
 }
