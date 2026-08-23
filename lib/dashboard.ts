@@ -2,27 +2,23 @@ import type { DatabaseSync, SQLInputValue } from 'node:sqlite';
 import type { DashboardStats } from './types';
 
 const today = () => new Date().toISOString().slice(0, 10);
-const daysAgo = (n: number) => {
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0, 10);
-};
+const daysAgo = (n: number) => { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
 
-export function dashboardStats(db: DatabaseSync): DashboardStats {
+export function dashboardStats(db: DatabaseSync, classId: number): DashboardStats {
   const one = (sql: string, params: SQLInputValue[] = []) => (db.prepare(sql).get(...params) as Record<string, number>);
-  const students = one('SELECT COUNT(*) n FROM students');
-  const male = one("SELECT COUNT(*) n FROM students WHERE gender='男'");
-  const todayLeaves = one("SELECT COUNT(*) n FROM leave_records WHERE start_date <= ? AND end_date >= ?", [today(), today()]).n;
-  const weekDiscipline = one('SELECT COUNT(*) n FROM discipline_records WHERE date >= ?', [daysAgo(6)]).n;
-  const todoPending = one("SELECT COUNT(*) n FROM todos WHERE status='待办'").n;
+  const students = one('SELECT COUNT(*) n FROM students WHERE class_id = ?', [classId]);
+  const male = one("SELECT COUNT(*) n FROM students WHERE class_id = ? AND gender='男'", [classId]);
+  const todayLeaves = one("SELECT COUNT(*) n FROM leave_records WHERE class_id = ? AND start_date <= ? AND end_date >= ?", [classId, today(), today()]).n;
+  const weekDiscipline = one('SELECT COUNT(*) n FROM discipline_records WHERE class_id = ? AND date >= ?', [classId, daysAgo(6)]).n;
+  const todoPending = one("SELECT COUNT(*) n FROM todos WHERE class_id = ? AND status='待办'", [classId]).n;
 
-  const examRow = db.prepare("SELECT AVG(score) avg FROM grades WHERE exam_name=(SELECT exam_name FROM grades ORDER BY id DESC LIMIT 1)").get() as { avg: number | null };
+  const examRow = db.prepare("SELECT AVG(score) avg FROM grades WHERE class_id = ? AND exam_name=(SELECT exam_name FROM grades WHERE class_id = ? ORDER BY id DESC LIMIT 1)").get(classId, classId) as { avg: number | null };
   const latestExamAvg = examRow.avg == null ? null : Math.round(examRow.avg * 10) / 10;
 
-  const monthWorkLogs = one('SELECT COUNT(*) n FROM work_logs WHERE date >= ?', [daysAgo(30)]).n;
-  const homeVisitCount = one("SELECT COUNT(*) n FROM home_visits WHERE is_meeting=0").n;
-  const parentMeetingCount = one("SELECT COUNT(*) n FROM home_visits WHERE is_meeting=1").n;
-  const engaged = (db.prepare('SELECT COUNT(DISTINCT student_name) n FROM parent_comm').get() as { n: number }).n;
+  const monthWorkLogs = one('SELECT COUNT(*) n FROM work_logs WHERE class_id = ? AND date >= ?', [classId, daysAgo(30)]).n;
+  const homeVisitCount = one("SELECT COUNT(*) n FROM home_visits WHERE class_id = ? AND is_meeting=0", [classId]).n;
+  const parentMeetingCount = one("SELECT COUNT(*) n FROM home_visits WHERE class_id = ? AND is_meeting=1", [classId]).n;
+  const engaged = (db.prepare('SELECT COUNT(DISTINCT student_name) n FROM parent_comm WHERE class_id = ?').get(classId) as { n: number }).n;
   const parentMeetingRate = students.n > 0 ? Math.min(100, Math.round((engaged / students.n) * 100)) : 0;
 
   return {
