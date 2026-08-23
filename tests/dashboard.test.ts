@@ -18,10 +18,7 @@ describe('dashboardStats', () => {
     expect(s.studentCount).toBe(45);
     expect(s.maleCount + s.femaleCount).toBe(45);
     expect(s.todayLeaves).toBeGreaterThanOrEqual(0);
-    expect(s.homeworkSubmitRate).toBeGreaterThan(0);
-    expect(s.homeworkSubmitRate).toBeLessThanOrEqual(100);
     expect(s.latestExamAvg).toBeGreaterThan(0);
     expect(s.monthWorkLogs).toBeGreaterThan(0);
-    expect(s.criticalCount).toBe(2); // peiyou_records 种子为 2 条
   });
 });

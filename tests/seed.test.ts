@@ -10,13 +10,13 @@ function makeDb() {
 }
 
 describe('schema', () => {
-  it('创建全部 18 张表', () => {
+  it('创建全部 15 张表', () => {
     const db = makeDb();
     const tables = (db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all() as { name: string }[]).map(t => t.name);
     expect(tables).toEqual(expect.arrayContaining([
       'settings', 'students', 'classroom_config', 'leave_records', 'discipline_records',
-      'grades', 'homework', 'schedules', 'timetable', 'todos', 'conversations',
-      'home_visits', 'evaluation', 'parent_comm', 'safety_logs', 'peiyou_records',
+      'grades', 'timetable', 'todos', 'conversations',
+      'home_visits', 'evaluation', 'parent_comm', 'safety_logs',
       'work_logs', 'seats',
     ]));
   });

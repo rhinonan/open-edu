@@ -8,8 +8,6 @@ export const RESOURCES: Record<ResourceKey, string> = {
   leave_records: 'leave_records',
   discipline_records: 'discipline_records',
   grades: 'grades',
-  homework: 'homework',
-  schedules: 'schedules',
   timetable: 'timetable',
   todos: 'todos',
   conversations: 'conversations',
@@ -17,7 +15,6 @@ export const RESOURCES: Record<ResourceKey, string> = {
   evaluation: 'evaluation',
   parent_comm: 'parent_comm',
   safety_logs: 'safety_logs',
-  peiyou_records: 'peiyou_records',
   work_logs: 'work_logs',
   seats: 'seats',
 };

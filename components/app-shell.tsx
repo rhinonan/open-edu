@@ -3,21 +3,19 @@ import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Button, Drawer, Grid, Layout, Menu, Typography } from 'antd';
 import {
-  AppstoreOutlined, BarChartOutlined, BookOutlined, CalendarOutlined,
+  AppstoreOutlined, BarChartOutlined, CalendarOutlined,
   CommentOutlined, DashboardOutlined, FileTextOutlined, FlagOutlined,
   HomeOutlined, MenuOutlined, MessageOutlined, SafetyOutlined,
-  SettingOutlined, StarOutlined, TeamOutlined, UserAddOutlined, UserOutlined,
+  SettingOutlined, StarOutlined, TeamOutlined, UserAddOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { EditableProvider, useEditable } from './editable-context';
 
 const MENU_ITEMS = [
   { key: '/', icon: <DashboardOutlined />, label: '仪表盘' },
-  { key: '/schedule', icon: <CalendarOutlined />, label: '日程安排' },
   { key: '/timetable', icon: <CalendarOutlined />, label: '我的课表' },
   { key: '/students', icon: <TeamOutlined />, label: '学生管理' },
   { key: '/grades', icon: <BarChartOutlined />, label: '成绩分析' },
-  { key: '/homework', icon: <BookOutlined />, label: '作业管理' },
   { key: '/leaves', icon: <UserAddOutlined />, label: '请假管理' },
   { key: '/discipline', icon: <FlagOutlined />, label: '违纪台账' },
   { key: '/conversations', icon: <CommentOutlined />, label: '谈话记录' },
@@ -26,7 +24,6 @@ const MENU_ITEMS = [
   { key: '/seats', icon: <AppstoreOutlined />, label: '排座位' },
   { key: '/parent-comm', icon: <MessageOutlined />, label: '家校沟通' },
   { key: '/safety', icon: <SafetyOutlined />, label: '安全台账' },
-  { key: '/peiyou', icon: <UserOutlined />, label: '培优临界生' },
   { key: '/work-logs', icon: <FileTextOutlined />, label: '工作留痕' },
   { key: '/settings', icon: <SettingOutlined />, label: '系统设置' },
 ];

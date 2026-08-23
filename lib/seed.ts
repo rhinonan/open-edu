@@ -81,23 +81,6 @@ export function seedIfEmpty(db: DatabaseSync): void {
     });
   }
 
-  // 日程
-  const sch = db.prepare(`INSERT INTO schedules (date, title, type, duration_min, done) VALUES (?, ?, ?, ?, ?)`);
-  const scheduleSeed = [
-    ['集体备课：第六单元', '备课', 90, 0],
-    ['年级教研会', '教研', 60, 1],
-    ['培优辅导：作文专项', '培优', 60, 0],
-    ['监考：单元小测', '监考', 120, 0],
-    ['家长会', '会议', 120, 0],
-  ];
-  scheduleSeed.forEach(([title, type, dur, done], i) => sch.run(date(i * 2), title as string, type as string, dur as number, done as number));
-
-  // 作业
-  const hw = db.prepare(`INSERT INTO homework (subject, assign_date, requirement, deadline, submitted, late, missing, missing_names) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
-  hw.run('语文', date(2), '预习第 12 课生字词，抄写两遍', date(1), 40, 3, 2, '张三,李四');
-  hw.run('数学', date(2), '练习册第 45-46 页', date(1), 38, 5, 2, '王五,赵六');
-  hw.run('语文', date(4), '周记一篇', date(3), 42, 1, 2, '刘七,陈八');
-
   // 一次单元测成绩（语数英，45 人）
   const g = db.prepare(`INSERT INTO grades (exam_name, subject, student_name, score) VALUES ('单元小测（一）', ?, ?, ?)`);
   for (const s of students) {
@@ -116,7 +99,7 @@ export function seedIfEmpty(db: DatabaseSync): void {
   dc.run(date(1), students[2], '课堂表现', '上课讲话', '谈话教育');
   dc.run(date(2), students[3], '迟到早退', '迟到 10 分钟', '提醒并联系家长');
 
-  // 谈话 / 家访 / 综合素质 / 家校沟通 / 安全 / 培优
+  // 谈话 / 家访 / 综合素质 / 家校沟通 / 安全
   const conv = db.prepare(`INSERT INTO conversations (date, student_name, topic, content, effect) VALUES (?, ?, ?, ?, ?)`);
   conv.run(date(1), students[2], '课堂纪律', '约定课堂不讲话', '有改善');
   const hv = db.prepare(`INSERT INTO home_visits (date, student_name, way, content, is_meeting) VALUES (?, ?, ?, ?, ?)`);
@@ -130,9 +113,6 @@ export function seedIfEmpty(db: DatabaseSync): void {
   pc.run(date(1), students[0], '微信', '反馈近期作业情况');
   const sl = db.prepare(`INSERT INTO safety_logs (date, category, content, action) VALUES (?, ?, ?, ?)`);
   sl.run(date(3), '消防', '消防疏散演练', '已完成');
-  const py = db.prepare(`INSERT INTO peiyou_records (student_name, subject, weak_point, target_score, record) VALUES (?, ?, ?, ?, ?)`);
-  py.run(students[4], '语文', '阅读理解', 85, '每周一篇阅读训练');
-  py.run(students[5], '数学', '应用题', 90, '每日 2 题巩固');
 
   // 工作留痕
   const wl = db.prepare(`INSERT INTO work_logs (date, title, type, place, hours) VALUES (?, ?, ?, ?, ?)`);
@@ -164,8 +144,8 @@ export function seedIfEmpty(db: DatabaseSync): void {
 }
 
 export function resetData(db: DatabaseSync): void {
-  const tables = ['todos', 'work_logs', 'peiyou_records', 'safety_logs', 'parent_comm',
-    'evaluation', 'home_visits', 'conversations', 'timetable', 'schedules', 'homework',
+  const tables = ['todos', 'work_logs', 'safety_logs', 'parent_comm',
+    'evaluation', 'home_visits', 'conversations', 'timetable',
     'grades', 'discipline_records', 'leave_records', 'seats', 'students', 'settings', 'classroom_config'];
   db.exec(tables.map(t => `DROP TABLE IF EXISTS ${t}`).join(';'));
   db.exec(SCHEMA_SQL);

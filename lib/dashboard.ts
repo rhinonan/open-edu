@@ -16,11 +16,6 @@ export function dashboardStats(db: DatabaseSync): DashboardStats {
   const weekDiscipline = one('SELECT COUNT(*) n FROM discipline_records WHERE date >= ?', [daysAgo(6)]).n;
   const todoPending = one("SELECT COUNT(*) n FROM todos WHERE status='待办'").n;
 
-  const hw = db.prepare('SELECT submitted, late, missing FROM homework').all() as { submitted: number; late: number; missing: number }[];
-  const hwTotal = hw.reduce((s, h) => s + h.submitted + h.late + h.missing, 0);
-  const hwSubmitted = hw.reduce((s, h) => s + h.submitted, 0);
-  const homeworkSubmitRate = hwTotal > 0 ? Math.round((hwSubmitted / hwTotal) * 100) : 0;
-
   const examRow = db.prepare("SELECT AVG(score) avg FROM grades WHERE exam_name=(SELECT exam_name FROM grades ORDER BY id DESC LIMIT 1)").get() as { avg: number | null };
   const latestExamAvg = examRow.avg == null ? null : Math.round(examRow.avg * 10) / 10;
 
@@ -29,7 +24,6 @@ export function dashboardStats(db: DatabaseSync): DashboardStats {
   const parentMeetingCount = one("SELECT COUNT(*) n FROM home_visits WHERE is_meeting=1").n;
   const engaged = (db.prepare('SELECT COUNT(DISTINCT student_name) n FROM parent_comm').get() as { n: number }).n;
   const parentMeetingRate = students.n > 0 ? Math.min(100, Math.round((engaged / students.n) * 100)) : 0;
-  const criticalCount = one('SELECT COUNT(*) n FROM peiyou_records').n;
 
   return {
     studentCount: students.n,
@@ -38,12 +32,10 @@ export function dashboardStats(db: DatabaseSync): DashboardStats {
     todayLeaves,
     weekDiscipline,
     todoPending,
-    homeworkSubmitRate,
     latestExamAvg,
     monthWorkLogs,
     homeVisitCount,
     parentMeetingCount,
     parentMeetingRate,
-    criticalCount,
   };
 }

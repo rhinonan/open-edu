@@ -24,7 +24,7 @@ A feature module is 4 small edits, and most `app/<module>/page.tsx` files are ju
 3. Create `app/<module>/page.tsx` (`'use client'`) defining a `CrudPageConfig` (columns, filters, stats, `defaultNewRow`, optional import template)
 4. Done — generic routes + `CrudPage` provide list/filter/add/edit/delete/CSV export/import and per-user column show/hide (persisted in `localStorage`) for free
 
-`CrudPage` (`components/crud/crud-page.tsx`) drives everything from the config; `DataTable` does inline editing (saves on blur/Enter). Hand-written pages exist only where the module needs bespoke UI: seats grid, timetable grid, dashboard, and homework's "录入收缴" modal flow.
+`CrudPage` (`components/crud/crud-page.tsx`) drives everything from the config; `DataTable` does inline editing (saves on blur/Enter). Hand-written pages exist only where the module needs bespoke UI: seats grid, timetable grid, and dashboard.
 
 ### Data layer
 - `lib/db.ts` exposes a singleton `getDb()` → `data/app.db` (WAL mode). `data/` is gitignored and auto-created.
