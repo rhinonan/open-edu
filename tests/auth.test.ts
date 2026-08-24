@@ -24,6 +24,7 @@ describe('hashPassword / verifyPassword', () => {
   it('verifyPassword 对畸形字符串返回 false', () => {
     expect(verifyPassword('x', 'no-colon')).toBe(false);
     expect(verifyPassword('x', '')).toBe(false);
+    expect(verifyPassword('x', 'salt:zz')).toBe(false);
   });
 });
 
