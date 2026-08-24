@@ -4,18 +4,18 @@
 
 ## 快速开始
 
-要求 Node.js >= 22。
+要求 Node.js >= 22，包管理器使用 pnpm。
 
 ```bash
-npm install
-npm run dev        # 开发模式，绑定 0.0.0.0:3004
+pnpm install
+pnpm run dev      # 开发模式，绑定 0.0.0.0:3004
 ```
 
 或生产模式：
 
 ```bash
-npm run build
-npm start          # http://电脑局域网IP:3004
+pnpm run build
+pnpm start        # http://电脑局域网IP:3004
 ```
 
 手机连同一 Wi-Fi，用浏览器打开 `http://电脑局域网IP:3004`。
