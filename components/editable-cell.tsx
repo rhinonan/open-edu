@@ -1,11 +1,10 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
-import { App, DatePicker, Input, InputNumber, Select } from 'antd';
-import type { InputRef } from 'antd';
-import { EditOutlined } from '@ant-design/icons';
-import dayjs from 'dayjs';
+import { Input, ListBox, Select, TextArea } from '@heroui/react';
+import { Pencil } from 'lucide-react';
 import { useEditable } from './editable-context';
+import { toast } from '@/lib/toast';
 
 export type EditableType = 'text' | 'textarea' | 'number' | 'date' | 'select' | 'tel';
 
@@ -18,12 +17,14 @@ interface Props {
   className?: string;
 }
 
+const dateInputCls =
+  'w-full rounded-lg border border-gray-300 bg-white px-2 py-1 text-sm text-slate-800 focus:border-accent focus:outline-none';
+
 export default function EditableCell({ value, type = 'text', options, nullOnEmpty, onSave, className }: Props) {
   const { editable } = useEditable();
-  const { message } = App.useApp();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<string>(String(value ?? ''));
-  const inputRef = useRef<InputRef>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => { if (editing) inputRef.current?.focus(); }, [editing]);
 
@@ -31,12 +32,12 @@ export default function EditableCell({ value, type = 'text', options, nullOnEmpt
     const display = value === null || value === '' ? '—' : String(value);
     return (
       <span
-        className={`group block w-full px-1 py-0.5 rounded cursor-text ${editable ? 'hover:bg-gray-100' : 'cursor-default hover:bg-transparent'} ${className ?? ''}`}
+        className={`group block w-full rounded px-1 py-0.5 cursor-text ${editable ? 'hover:bg-gray-100' : 'cursor-default'} ${className ?? ''}`}
         title={editable ? '点击编辑' : undefined}
         onClick={() => { if (editable) { setDraft(String(value ?? '')); setEditing(true); } }}
       >
         {display}
-        {editable && <EditOutlined className="ml-1 align-middle text-xs text-slate-400 opacity-0 transition-opacity group-hover:opacity-100" aria-hidden />}
+        {editable && <Pencil size={11} className="ml-1 inline text-slate-400 opacity-0 transition-opacity group-hover:opacity-100" aria-hidden />}
       </span>
     );
   }
@@ -46,7 +47,7 @@ export default function EditableCell({ value, type = 'text', options, nullOnEmpt
     setEditing(false);
     if (String(v) === String(value ?? '')) return;
     try { await onSave(v); }
-    catch { message.error('保存失败'); }
+    catch { toast.error('保存失败'); }
   };
   const onBlurSave = () => {
     const final = type === 'number' ? (draft === '' ? 0 : Number(draft)) : (nullOnEmpty && draft === '' ? null : draft);
@@ -60,29 +61,39 @@ export default function EditableCell({ value, type = 'text', options, nullOnEmpt
   if (type === 'select' && options) {
     return (
       <Select
-        size="small" autoFocus defaultOpen style={{ width: '100%' }}
-        placeholder="选择学科"
-        defaultValue={value || undefined}
-        options={options.map(o => ({ value: o, label: o === '' ? '（清空）' : o }))}
-        onChange={(v) => void save(v)}
-        onBlur={() => setEditing(false)}
-        onKeyDown={(e) => { if (e.key === 'Escape') setEditing(false); }}
-      />
+        aria-label="选择"
+        className="w-full"
+        placeholder="选择"
+        selectedKey={value === null || value === '' ? '' : String(value)}
+        onSelectionChange={(k) => void save(k === null || k === '' ? null : String(k))}
+      >
+        <Select.Trigger><Select.Value /></Select.Trigger>
+        <Select.Indicator />
+        <Select.Popover>
+          <ListBox>
+            {options.map(o => <ListBox.Item key={o} id={o}>{o === '' ? '（清空）' : o}</ListBox.Item>)}
+          </ListBox>
+        </Select.Popover>
+      </Select>
     );
   }
   if (type === 'date') {
     return (
-      <DatePicker
-        size="small" autoFocus style={{ width: '100%' }}
-        value={value ? dayjs(String(value)) : null}
-        onChange={(d) => void save(d ? d.format('YYYY-MM-DD') : '')}
+      <input
+        ref={inputRef}
+        type="date"
+        autoFocus
+        className={dateInputCls}
+        defaultValue={String(value ?? '')}
+        onBlur={(e) => void save(e.target.value || null)}
       />
     );
   }
   if (type === 'textarea') {
     return (
-      <Input.TextArea
-        autoFocus rows={2} size="small" value={draft}
+      <TextArea
+        autoFocus rows={2} className="w-full"
+        value={draft}
         onChange={e => setDraft(e.target.value)}
         onBlur={() => void save(nullOnEmpty && draft === '' ? null : draft)}
         onKeyDown={onKey}
@@ -91,18 +102,19 @@ export default function EditableCell({ value, type = 'text', options, nullOnEmpt
   }
   if (type === 'number') {
     return (
-      <InputNumber
-        autoFocus size="small" style={{ width: '100%' }}
-        value={draft === '' ? null : Number(draft)}
-        onChange={(v) => setDraft(v === null ? '' : String(v))}
+      <Input
+        ref={inputRef} autoFocus type="number" className="w-24"
+        value={draft}
+        onChange={e => setDraft(e.target.value)}
         onBlur={onBlurSave}
-        onPressEnter={() => void save(draft === '' ? 0 : Number(draft))}
+        onKeyDown={onKey}
       />
     );
   }
   return (
     <Input
-      ref={inputRef} size="small" variant="borderless" value={draft}
+      ref={inputRef} className="min-w-32"
+      value={draft}
       onChange={e => setDraft(e.target.value)}
       onBlur={onBlurSave}
       onKeyDown={onKey}
