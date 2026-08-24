@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import "@heroui/styles";
 
 @theme {
   --color-navy: #1d2b52;        /* 深空藏蓝侧边栏 */
