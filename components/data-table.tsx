@@ -1,7 +1,7 @@
 'use client';
 import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Button, ListBox, Pagination, Popover, Select, Skeleton, Table } from '@heroui/react';
+import { ListBox, Pagination, Popover, Select, Skeleton, Table } from '@heroui/react';
 import type { SortDescriptor } from '@heroui/react/rac';
 import { FilterX, SlidersHorizontal } from 'lucide-react';
 import EditableCell from './editable-cell';
@@ -76,23 +76,12 @@ export default function DataTable({ columns, rows, loading, label, onSave, pageS
   }, [rows, columns, filters, sort]);
 
   const pageCount = pageSize ? Math.max(1, Math.ceil(filtered.length / pageSize)) : 1;
-  const visible = pageSize ? filtered.slice((page - 1) * pageSize, page * pageSize) : filtered;
+  const safePage = Math.min(page, pageCount);
+  const visible = pageSize ? filtered.slice((safePage - 1) * pageSize, safePage * pageSize) : filtered;
   const resetPage = () => setPage(1);
 
   const setFilter = (key: string, v: string | null) => {
     setFilters(prev => ({ ...prev, [key]: v }));
-    setPage(1);
-  };
-
-  const sortToggle = (key: string) => {
-    setSort(prev => {
-      if (prev.column === key) {
-        if (prev.direction === 'ascending') return { column: key, direction: 'descending' };
-        if (prev.direction === 'descending') return NO_SORT;
-        return { column: key, direction: 'ascending' };
-      }
-      return { column: key, direction: 'ascending' };
-    });
     setPage(1);
   };
 
@@ -178,7 +167,7 @@ export default function DataTable({ columns, rows, loading, label, onSave, pageS
             <Pagination.Item><Pagination.Previous onPress={() => setPage(p => Math.max(1, p - 1))}><Pagination.PreviousIcon /></Pagination.Previous></Pagination.Item>
             {Array.from({ length: pageCount }, (_, i) => i + 1).map(p => (
               <Pagination.Item key={p}>
-                <Pagination.Link isActive={p === page} onPress={() => setPage(p)}>{p}</Pagination.Link>
+                <Pagination.Link isActive={p === safePage} onPress={() => setPage(p)}>{p}</Pagination.Link>
               </Pagination.Item>
             ))}
             <Pagination.Item><Pagination.Next onPress={() => setPage(p => Math.min(pageCount, p + 1))}><Pagination.NextIcon /></Pagination.Next></Pagination.Item>
