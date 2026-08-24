@@ -17,6 +17,7 @@ export async function PUT(req: NextRequest, { params }: Ctx) {
   const db = getDb();
   const user = currentUser(db, req);
   if (!user) return NextResponse.json({ error: '未登录' }, { status: 401 });
+  if (resource === 'period_slots' && user.role !== 'admin') return NextResponse.json({ error: '无权限' }, { status: 403 });
   try {
     const body = await req.json();
     if (resource === 'students' && (body as Record<string, unknown>).idcard === '') (body as Record<string, unknown>).idcard = null;
@@ -33,6 +34,7 @@ export async function DELETE(req: NextRequest, { params }: Ctx) {
   const db = getDb();
   const user = currentUser(db, req);
   if (!user) return NextResponse.json({ error: '未登录' }, { status: 401 });
+  if (resource === 'period_slots' && user.role !== 'admin') return NextResponse.json({ error: '无权限' }, { status: 403 });
   if (resource === 'period_slots') removePeriodSlot(db, Number(id));
   else remove(db, resource, Number(id), user.class_id ?? 0);
   return NextResponse.json({ ok: true });
