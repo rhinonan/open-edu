@@ -24,17 +24,6 @@ export function classStats(slots: Row[], rows: Row[]): { total: number; chinese:
   };
 }
 
-/** 按学科统计课时，只含非空学科 */
-export function subjectDist(rows: Row[]): { name: string; 课时: number }[] {
-  const m = new Map<string, number>();
-  for (const r of rows) {
-    const s = String(r.subject ?? '');
-    if (!s) continue;
-    m.set(s, (m.get(s) ?? 0) + 1);
-  }
-  return [...m.entries()].map(([name, 课时]) => ({ name, 课时 })).filter(d => d.name);
-}
-
 /** 删除时段并级联删除其下 timetable 与 teacher_schedule 行 */
 export function removePeriodSlot(db: DatabaseSync, id: number): void {
   db.exec('BEGIN');

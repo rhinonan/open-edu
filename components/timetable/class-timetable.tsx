@@ -1,11 +1,10 @@
 'use client';
 import { useMemo, useState } from 'react';
 import { Button, Card, Typography } from 'antd';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useResourceRows } from '@/components/use-resource';
 import EditableCell from '@/components/editable-cell';
 import PeriodSlotsModal from './period-slots-modal';
-import { buildClassGrid, classStats, subjectDist, SUBJECTS, KIND_LABELS } from '@/lib/timetable';
+import { buildClassGrid, classStats, SUBJECTS, KIND_LABELS } from '@/lib/timetable';
 
 const DAYS = ['周一', '周二', '周三', '周四', '周五'];
 
@@ -17,7 +16,6 @@ export default function ClassTimetable() {
   const ordered = useMemo(() => [...slots].sort((a, b) => Number(a.seq) - Number(b.seq)), [slots]);
   const grid = useMemo(() => buildClassGrid(ordered, tt), [ordered, tt]);
   const stats = useMemo(() => classStats(ordered, tt), [ordered, tt]);
-  const bySubject = useMemo(() => subjectDist(tt), [tt]);
 
   const saveSubject = async (weekday: number, periodId: number, subject: string | number | null) => {
     const v = String(subject ?? '');
@@ -79,19 +77,6 @@ export default function ClassTimetable() {
             })}
           </tbody>
         </table>
-      </Card>
-      <Card size="small"><h3 className="mb-3 text-sm font-semibold text-slate-600" style={{ marginTop: 0 }}>课时分布（按学科）</h3>
-        <div className="h-56">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={bySubject}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="name" />
-              <YAxis allowDecimals={false} />
-              <Tooltip />
-              <Bar dataKey="课时" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
       </Card>
       <PeriodSlotsModal open={slotModalOpen} onClose={() => { setSlotModalOpen(false); void slotsReload(); void ttReload(); }} />
     </div>

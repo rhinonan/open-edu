@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import { App, DatePicker, Input, InputNumber, Select } from 'antd';
 import type { InputRef } from 'antd';
+import { EditOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useEditable } from './editable-context';
 
@@ -30,11 +31,12 @@ export default function EditableCell({ value, type = 'text', options, nullOnEmpt
     const display = value === null || value === '' ? '—' : String(value);
     return (
       <span
-        className={`block w-full px-1 py-0.5 rounded cursor-text ${editable ? 'hover:bg-gray-100' : 'cursor-default hover:bg-transparent'} ${className ?? ''}`}
+        className={`group block w-full px-1 py-0.5 rounded cursor-text ${editable ? 'hover:bg-gray-100' : 'cursor-default hover:bg-transparent'} ${className ?? ''}`}
         title={editable ? '点击编辑' : undefined}
         onClick={() => { if (editable) { setDraft(String(value ?? '')); setEditing(true); } }}
       >
         {display}
+        {editable && <EditOutlined className="ml-1 align-middle text-xs text-slate-400 opacity-0 transition-opacity group-hover:opacity-100" aria-hidden />}
       </span>
     );
   }
@@ -58,10 +60,13 @@ export default function EditableCell({ value, type = 'text', options, nullOnEmpt
   if (type === 'select' && options) {
     return (
       <Select
-        size="small" autoFocus open style={{ width: '100%' }}
-        defaultValue={value ?? ''}
-        options={options.map(o => ({ value: o, label: o }))}
+        size="small" autoFocus defaultOpen style={{ width: '100%' }}
+        placeholder="选择学科"
+        defaultValue={value || undefined}
+        options={options.map(o => ({ value: o, label: o === '' ? '（清空）' : o }))}
         onChange={(v) => void save(v)}
+        onBlur={() => setEditing(false)}
+        onKeyDown={(e) => { if (e.key === 'Escape') setEditing(false); }}
       />
     );
   }

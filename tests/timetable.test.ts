@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { DatabaseSync } from 'node:sqlite';
 import { SCHEMA_SQL } from '../lib/schema';
 import { seedClass } from '../lib/seed';
-import { buildClassGrid, classStats, subjectDist, removePeriodSlot, KIND_LABELS, SUBJECTS } from '../lib/timetable';
+import { buildClassGrid, classStats, removePeriodSlot, KIND_LABELS, SUBJECTS } from '../lib/timetable';
 import type { Row } from '../lib/types';
 
 function makeDb() {
@@ -82,23 +82,6 @@ describe('纯函数', () => {
     const stats = classStats(slots, [one]);
     expect(stats.total).toBe(0);
     expect(stats.chinese).toBe(0);
-  });
-
-  it('subjectDist 只含非空学科且按课时统计', () => {
-    const { db, classId } = makeDb();
-    const tt = query<Row>(db, 'SELECT * FROM timetable WHERE class_id = ?', classId);
-    const dist = subjectDist(tt);
-    const distinct = [...new Set(tt.map(r => String(r.subject ?? '')).filter(s => s))];
-    expect(dist.every(d => d.name)).toBe(true);
-    const sum = dist.reduce((a, d) => a + d.课时, 0);
-    expect(sum).toBe(35);
-    // 学科集合与 timetable 中的非空学科一致
-    expect(dist.map(d => d.name).sort()).toEqual([...distinct].sort());
-    // 每种学科的课时数等于 timetable 中该学科的行数
-    const any = dist[0];
-    expect(any).toBeTruthy();
-    const expected = tt.filter(r => String(r.subject) === any.name).length;
-    expect(any.课时).toBe(expected);
   });
 
   it('buildClassGrid 以 `${weekday}-${period_id}` 为键', () => {
