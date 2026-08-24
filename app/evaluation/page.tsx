@@ -50,7 +50,7 @@ export default function EvaluationPage() {
         <div className="border border-gray-200 rounded-lg p-4">
           <h3 className="mb-3 text-sm font-semibold text-slate-600" style={{ marginTop: 0 }}>各维度平均分（满分 5）</h3>
           <div className="h-56">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height={224}>
               <BarChart data={dimStats}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="name" />

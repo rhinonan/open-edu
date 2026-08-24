@@ -74,7 +74,7 @@ export default function WorkLogsPage() {
       <Table<Row> rowKey="id" columns={columns} dataSource={rows} loading={loading} size="middle" pagination={false} scroll={{ x: 'max-content' }} />
       <Card size="small" className="mt-4"><h3 className="mb-3 text-sm font-semibold text-slate-600" style={{ marginTop: 0 }}>工作类型分布（环形饼图）</h3>
         <div className="h-56">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height={224}>
             <PieChart>
               <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={2}>
                 {pieData.map((d, i) => <Cell key={i} fill={CategoryColor(d.name)} />)}

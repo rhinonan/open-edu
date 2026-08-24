@@ -59,7 +59,7 @@ export default function GradesPage() {
           <div className="grid md:grid-cols-2 gap-4">
             <Card size="small"><h3 className="mb-3 text-sm font-semibold text-slate-600" style={{ marginTop: 0 }}>分数段分布（直方图）</h3>
               <div className="h-56">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height={224}>
                   <BarChart data={histogram}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
                     <XAxis dataKey="name" />
