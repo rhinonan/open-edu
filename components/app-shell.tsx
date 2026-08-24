@@ -13,7 +13,8 @@ import { EditableProvider, useEditable } from './editable-context';
 
 interface Me { user: { name: string; role: string; class_id: number | null }; class: { name: string } | null }
 
-const BASE_MENU = [
+// 班级业务页：仅班主任（有 class_id）可见
+const BUSINESS_MENU = [
   { key: '/', icon: <DashboardOutlined />, label: '仪表盘' },
   { key: '/timetable', icon: <CalendarOutlined />, label: '我的课表' },
   { key: '/students', icon: <TeamOutlined />, label: '学生管理' },
@@ -27,8 +28,10 @@ const BASE_MENU = [
   { key: '/parent-comm', icon: <MessageOutlined />, label: '家校沟通' },
   { key: '/safety', icon: <SafetyOutlined />, label: '安全台账' },
   { key: '/work-logs', icon: <FileTextOutlined />, label: '工作留痕' },
-  { key: '/settings', icon: <SettingOutlined />, label: '系统设置' },
 ];
+
+const SETTINGS_MENU = { key: '/settings', icon: <SettingOutlined />, label: '系统设置' };
+const USERS_MENU = { key: '/users', icon: <UserOutlined />, label: '用户管理' };
 
 function ShellHeader({ onOpenDrawer, mobile }: { onOpenDrawer: () => void; mobile: boolean }) {
   const { editable, toggle } = useEditable();
@@ -86,11 +89,18 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       .catch(() => setRole(null));
   }, []);
 
+  // 管理员无班级：隐藏业务菜单后，把误入班级业务页的 admin 送回系统设置
+  useEffect(() => {
+    if (role === 'admin' && BUSINESS_MENU.some(m => m.key === pathname)) {
+      router.replace('/settings');
+    }
+  }, [role, pathname, router]);
+
   if (pathname.startsWith('/login')) return <>{children}</>;
 
   const menuItems = role === 'admin'
-    ? [...BASE_MENU, { key: '/users', icon: <UserOutlined />, label: '用户管理' }]
-    : BASE_MENU;
+    ? [SETTINGS_MENU, USERS_MENU]
+    : [...BUSINESS_MENU, SETTINGS_MENU];
 
   const menu = (
     <Menu mode="inline" style={{ borderInlineEnd: 0, height: '100%' }}
