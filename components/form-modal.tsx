@@ -42,13 +42,17 @@ export default function FormModal({ title, fields, open, onClose, onSubmit, init
   useEffect(() => { initialRef.current = initial; }, [initial]);
   useEffect(() => {
     if (open && !wasOpen.current) {
+      const d = new Date();
+      const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       const v: Record<string, string | number> = {};
       for (const f of fieldsRef.current) {
-        const val = initialRef.current?.[f.key] ?? f.initial ?? '';
-        v[f.key] = val === null || val === undefined ? '' : String(val);
+        const raw = initialRef.current?.[f.key] ?? f.initial ?? null;
+        const resolved = raw === null || raw === undefined ? (f.type === 'date' ? today : '') : String(raw);
+        v[f.key] = resolved;
       }
       setValues(v);
       setErrors({});
+      setBusy(false);
     }
     wasOpen.current = open;
   }, [open]);
@@ -72,7 +76,7 @@ export default function FormModal({ title, fields, open, onClose, onSubmit, init
         body[f.key] = f.type === 'number' ? (String(val ?? '').trim() === '' ? null : Number(val)) : String(val ?? '');
       }
       await onSubmit(body);
-    } finally { setBusy(false); }
+    } catch { /* 调用方自行处理错误 */ } finally { setBusy(false); }
   };
 
   return (
