@@ -5,13 +5,15 @@ import { Button, Drawer, Grid, Layout, Menu, Typography } from 'antd';
 import {
   AppstoreOutlined, BarChartOutlined, CalendarOutlined,
   CommentOutlined, DashboardOutlined, FileTextOutlined, FlagOutlined,
-  HomeOutlined, MenuOutlined, MessageOutlined, SafetyOutlined,
-  SettingOutlined, StarOutlined, TeamOutlined, UserAddOutlined,
+  HomeOutlined, LogoutOutlined, MenuOutlined, MessageOutlined, SafetyOutlined,
+  SettingOutlined, StarOutlined, TeamOutlined, UserAddOutlined, UserOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { EditableProvider, useEditable } from './editable-context';
 
-const MENU_ITEMS = [
+interface Me { user: { name: string; role: string; class_id: number | null }; class: { name: string } | null }
+
+const BASE_MENU = [
   { key: '/', icon: <DashboardOutlined />, label: '仪表盘' },
   { key: '/timetable', icon: <CalendarOutlined />, label: '我的课表' },
   { key: '/students', icon: <TeamOutlined />, label: '学生管理' },
@@ -30,26 +32,38 @@ const MENU_ITEMS = [
 
 function ShellHeader({ onOpenDrawer, mobile }: { onOpenDrawer: () => void; mobile: boolean }) {
   const { editable, toggle } = useEditable();
+  const router = useRouter();
   const [now, setNow] = useState('');
-  const [className, setClassName] = useState('');
+  const [me, setMe] = useState<Me | null>(null);
+
   useEffect(() => {
-    fetch('/api/settings').then(r => r.json()).then((rows: { key: string; value: string }[]) => {
-      const c = rows.find(r => r.key === 'class_name');
-      if (c) setClassName(c.value);
-    }).catch(() => {});
+    fetch('/api/me')
+      .then(r => r.ok ? r.json() : Promise.resolve(null))
+      .then((m: Me | null) => setMe(m))
+      .catch(() => setMe(null));
   }, []);
+
   useEffect(() => {
     const tick = () => setNow(dayjs().format('YYYY-MM-DD HH:mm:ss'));
     tick();
     const t = setInterval(tick, 1000);
     return () => clearInterval(t);
   }, []);
+
+  const logout = async () => {
+    await fetch('/api/logout', { method: 'POST' });
+    router.replace('/login');
+  };
+
+  const title = me?.class?.name || '班级工作台';
   return (
     <Layout.Header style={{ background: '#fff', padding: '0 16px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid #f0f0f0' }}>
       <Button type="text" icon={<MenuOutlined />} onClick={onOpenDrawer} style={{ display: mobile ? undefined : 'none' }} aria-label="打开菜单" />
-      <Typography.Text strong>{className || '班级工作台'}</Typography.Text>
+      <Typography.Text strong>{title}</Typography.Text>
       <div style={{ flex: 1 }} />
       <Typography.Text type="secondary" style={{ fontSize: 12, display: mobile ? 'none' : undefined }}>{now}</Typography.Text>
+      <Typography.Text style={{ fontSize: 12, marginLeft: 8 }}>{me?.user?.name ?? ''}</Typography.Text>
+      <Button size="small" icon={<LogoutOutlined />} onClick={logout}>退出</Button>
       <Button type={editable ? 'primary' : 'default'} size="small" onClick={toggle}>
         {editable ? '完成' : '编辑'}
       </Button>
@@ -63,15 +77,25 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const screens = Grid.useBreakpoint();
   const mobile = !(screens.md ?? false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [role, setRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch('/api/me')
+      .then(r => r.ok ? r.json() : Promise.resolve(null))
+      .then((m: Me | null) => setRole(m?.user?.role ?? null))
+      .catch(() => setRole(null));
+  }, []);
+
+  if (pathname.startsWith('/login')) return <>{children}</>;
+
+  const menuItems = role === 'admin'
+    ? [...BASE_MENU, { key: '/users', icon: <UserOutlined />, label: '用户管理' }]
+    : BASE_MENU;
 
   const menu = (
-    <Menu
-      mode="inline"
-      style={{ borderInlineEnd: 0, height: '100%' }}
-      selectedKeys={[pathname]}
-      items={MENU_ITEMS}
-      onClick={({ key }) => { router.push(key); setDrawerOpen(false); }}
-    />
+    <Menu mode="inline" style={{ borderInlineEnd: 0, height: '100%' }}
+      selectedKeys={[pathname]} items={menuItems}
+      onClick={({ key }) => { router.push(key); setDrawerOpen(false); }} />
   );
 
   return (
