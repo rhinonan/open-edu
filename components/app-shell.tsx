@@ -1,42 +1,73 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Button, Drawer, Grid, Layout, Menu, Typography } from 'antd';
+import { Button, Drawer, useMediaQuery } from '@heroui/react';
 import {
-  AppstoreOutlined, BarChartOutlined, CalendarOutlined,
-  CommentOutlined, DashboardOutlined, FileTextOutlined, FlagOutlined,
-  HomeOutlined, LogoutOutlined, MenuOutlined, MessageOutlined, SafetyOutlined,
-  SettingOutlined, StarOutlined, TeamOutlined, UserAddOutlined, UserOutlined,
-} from '@ant-design/icons';
+  Armchair, BarChart3, CalendarDays, FileClock, Flag, Home, LayoutDashboard,
+  LogOut, Menu, MessageSquare, MessagesSquare, Settings, ShieldCheck, Star,
+  UserMinus, Users, UsersRound,
+} from 'lucide-react';
 import dayjs from 'dayjs';
 import { EditableProvider, useEditable } from './editable-context';
 
 interface Me { user: { name: string; role: string; class_id: number | null }; class: { name: string } | null }
 
-// 班级业务页：仅班主任（有 class_id）可见
-const BUSINESS_MENU = [
-  { key: '/', icon: <DashboardOutlined />, label: '仪表盘' },
-  { key: '/timetable', icon: <CalendarOutlined />, label: '我的课表' },
-  { key: '/students', icon: <TeamOutlined />, label: '学生管理' },
-  { key: '/grades', icon: <BarChartOutlined />, label: '成绩分析' },
-  { key: '/leaves', icon: <UserAddOutlined />, label: '请假管理' },
-  { key: '/discipline', icon: <FlagOutlined />, label: '违纪台账' },
-  { key: '/conversations', icon: <CommentOutlined />, label: '谈话记录' },
-  { key: '/visits', icon: <HomeOutlined />, label: '生涯家访' },
-  { key: '/evaluation', icon: <StarOutlined />, label: '综合素质评价' },
-  { key: '/seats', icon: <AppstoreOutlined />, label: '排座位' },
-  { key: '/parent-comm', icon: <MessageOutlined />, label: '家校沟通' },
-  { key: '/safety', icon: <SafetyOutlined />, label: '安全台账' },
-  { key: '/work-logs', icon: <FileTextOutlined />, label: '工作留痕' },
+const BUSINESS = [
+  { key: '/', icon: <LayoutDashboard size={18} />, label: '仪表盘' },
+  { key: '/timetable', icon: <CalendarDays size={18} />, label: '我的课表' },
+  { key: '/students', icon: <Users size={18} />, label: '学生管理' },
+  { key: '/grades', icon: <BarChart3 size={18} />, label: '成绩分析' },
+  { key: '/leaves', icon: <UserMinus size={18} />, label: '请假管理' },
+  { key: '/discipline', icon: <Flag size={18} />, label: '违纪台账' },
+  { key: '/conversations', icon: <MessageSquare size={18} />, label: '谈话记录' },
+  { key: '/visits', icon: <Home size={18} />, label: '生涯家访' },
+  { key: '/evaluation', icon: <Star size={18} />, label: '综合素质评价' },
+  { key: '/seats', icon: <Armchair size={18} />, label: '排座位' },
+  { key: '/parent-comm', icon: <MessagesSquare size={18} />, label: '家校沟通' },
+  { key: '/safety', icon: <ShieldCheck size={18} />, label: '安全台账' },
+  { key: '/work-logs', icon: <FileClock size={18} />, label: '工作留痕' },
 ];
+const SETTINGS = { key: '/settings', icon: <Settings size={18} />, label: '系统设置' };
+const USERS = { key: '/users', icon: <UsersRound size={18} />, label: '用户管理' };
 
-const SETTINGS_MENU = { key: '/settings', icon: <SettingOutlined />, label: '系统设置' };
-const USERS_MENU = { key: '/users', icon: <UserOutlined />, label: '用户管理' };
-
-function ShellHeader({ onOpenDrawer, mobile }: { onOpenDrawer: () => void; mobile: boolean }) {
+function ShellHeader({ mobile, me, onOpenDrawer }: { mobile: boolean; me: Me | null; onOpenDrawer: () => void }) {
   const { editable, toggle } = useEditable();
   const router = useRouter();
   const [now, setNow] = useState('');
+  useEffect(() => {
+    const tick = () => setNow(dayjs().format('YYYY-MM-DD HH:mm:ss'));
+    tick();
+    const t = setInterval(tick, 1000);
+    return () => clearInterval(t);
+  }, []);
+  const logout = async () => { await fetch('/api/logout', { method: 'POST' }); router.replace('/login'); };
+  return (
+    <header className="flex items-center gap-3 border-b border-gray-200 bg-white px-4 py-2.5">
+      {mobile && (
+        <Button variant="ghost" size="sm" isIconOnly aria-label="打开菜单" onPress={onOpenDrawer}>
+          <Menu size={20} />
+        </Button>
+      )}
+      <span className="font-semibold text-slate-800">{me?.class?.name || '班级工作台'}</span>
+      <div className="flex-1" />
+      {!mobile && <span className="text-xs text-slate-400">{now}</span>}
+      <span className="text-xs text-slate-500">{me?.user?.name ?? ''}</span>
+      <Button variant="outline" size="sm" onPress={logout}>
+        <LogOut size={14} /> 退出
+      </Button>
+      <Button variant={editable ? 'primary' : 'outline'} size="sm" onPress={toggle}>
+        {editable ? '完成' : '编辑'}
+      </Button>
+    </header>
+  );
+}
+
+export default function AppShell({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const mobile = useMediaQuery('(max-width: 767px)');
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [me, setMe] = useState<Me | null>(null);
 
   useEffect(() => {
@@ -46,88 +77,60 @@ function ShellHeader({ onOpenDrawer, mobile }: { onOpenDrawer: () => void; mobil
       .catch(() => setMe(null));
   }, []);
 
+  // 管理员无班级：隐藏业务菜单后，把误入业务页的 admin 送回系统设置
   useEffect(() => {
-    const tick = () => setNow(dayjs().format('YYYY-MM-DD HH:mm:ss'));
-    tick();
-    const t = setInterval(tick, 1000);
-    return () => clearInterval(t);
-  }, []);
-
-  const logout = async () => {
-    await fetch('/api/logout', { method: 'POST' });
-    router.replace('/login');
-  };
-
-  const title = me?.class?.name || '班级工作台';
-  return (
-    <Layout.Header style={{ background: '#fff', padding: '0 16px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid #f0f0f0' }}>
-      <Button type="text" icon={<MenuOutlined />} onClick={onOpenDrawer} style={{ display: mobile ? undefined : 'none' }} aria-label="打开菜单" />
-      <Typography.Text strong>{title}</Typography.Text>
-      <div style={{ flex: 1 }} />
-      <Typography.Text type="secondary" style={{ fontSize: 12, display: mobile ? 'none' : undefined }}>{now}</Typography.Text>
-      <Typography.Text style={{ fontSize: 12, marginLeft: 8 }}>{me?.user?.name ?? ''}</Typography.Text>
-      <Button size="small" icon={<LogoutOutlined />} onClick={logout}>退出</Button>
-      <Button type={editable ? 'primary' : 'default'} size="small" onClick={toggle}>
-        {editable ? '完成' : '编辑'}
-      </Button>
-    </Layout.Header>
-  );
-}
-
-export default function AppShell({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const screens = Grid.useBreakpoint();
-  const mobile = !(screens.md ?? false);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [role, setRole] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetch('/api/me')
-      .then(r => r.ok ? r.json() : Promise.resolve(null))
-      .then((m: Me | null) => setRole(m?.user?.role ?? null))
-      .catch(() => setRole(null));
-  }, []);
-
-  // 管理员无班级：隐藏业务菜单后，把误入班级业务页的 admin 送回系统设置
-  useEffect(() => {
-    if (role === 'admin' && BUSINESS_MENU.some(m => m.key === pathname)) {
+    if (me?.user?.role === 'admin' && BUSINESS.some(m => m.key === pathname)) {
       router.replace('/settings');
     }
-  }, [role, pathname, router]);
+  }, [me, pathname, router]);
 
   if (pathname.startsWith('/login')) return <>{children}</>;
 
-  const menuItems = role === 'admin'
-    ? [SETTINGS_MENU, USERS_MENU]
-    : [...BUSINESS_MENU, SETTINGS_MENU];
+  const role = me?.user?.role ?? 'teacher';
+  const items = role === 'admin' ? [SETTINGS, USERS] : [...BUSINESS, SETTINGS];
 
-  const menu = (
-    <Menu mode="inline" style={{ borderInlineEnd: 0, height: '100%' }}
-      selectedKeys={[pathname]} items={menuItems}
-      onClick={({ key }) => { router.push(key); setDrawerOpen(false); }} />
+  const nav = (
+    <nav className="flex-1 space-y-1 overflow-y-auto px-2 py-3">
+      {items.map(it => (
+        <Link
+          key={it.key}
+          href={it.key}
+          onClick={() => setDrawerOpen(false)}
+          className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm ${
+            pathname === it.key ? 'bg-white/10 font-medium text-white' : 'text-slate-300 hover:bg-white/5 hover:text-white'
+          }`}
+        >
+          {it.icon}<span>{it.label}</span>
+        </Link>
+      ))}
+    </nav>
   );
 
   return (
     <EditableProvider>
-      <Layout style={{ minHeight: '100vh' }}>
-        {mobile ? (
-          <Drawer placement="left" size={220} closable={false} open={drawerOpen} onClose={() => setDrawerOpen(false)} styles={{ body: { padding: 0 } }}>
-            {menu}
-          </Drawer>
-        ) : (
-          <Layout.Sider width={210} theme="light" style={{ borderRight: '1px solid #f0f0f0' }}>
-            <div style={{ padding: 16, textAlign: 'center', fontWeight: 600 }}>班主任智慧工作台</div>
-            {menu}
-          </Layout.Sider>
+      <div className="flex min-h-screen">
+        {!mobile && (
+          <aside className="fixed inset-y-0 left-0 z-30 flex w-56 flex-col bg-navy text-white">
+            <div className="px-4 py-4 text-center font-semibold">班主任智慧工作台</div>
+            {nav}
+          </aside>
         )}
-        <Layout>
-          <ShellHeader onOpenDrawer={() => setDrawerOpen(true)} mobile={mobile} />
-          <Layout.Content style={{ padding: 16, width: '100%' }}>
-            {children}
-          </Layout.Content>
-        </Layout>
-      </Layout>
+        <div className={`flex-1 ${mobile ? '' : 'ml-56'}`}>
+          <ShellHeader mobile={mobile} me={me} onOpenDrawer={() => setDrawerOpen(true)} />
+          <main className="mx-auto w-full max-w-5xl p-4">{children}</main>
+        </div>
+        {mobile && (
+          <Drawer isOpen={drawerOpen} onOpenChange={setDrawerOpen}>
+            <Drawer.Backdrop />
+            <Drawer.Content placement="left" className="w-56">
+              <div className="flex h-full flex-col bg-navy text-white">
+                <div className="px-4 py-4 text-center font-semibold">班主任智慧工作台</div>
+                {nav}
+              </div>
+            </Drawer.Content>
+          </Drawer>
+        )}
+      </div>
     </EditableProvider>
   );
 }
