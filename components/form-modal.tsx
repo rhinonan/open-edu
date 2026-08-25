@@ -76,6 +76,7 @@ export default function FormModal({ title, fields, open, onClose, onSubmit, init
         body[f.key] = f.type === 'number' ? (String(val ?? '').trim() === '' ? null : Number(val)) : String(val ?? '');
       }
       await onSubmit(body);
+      onClose();
     } catch { /* 调用方自行处理错误 */ } finally { setBusy(false); }
   };
 
