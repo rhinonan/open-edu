@@ -1,6 +1,6 @@
 'use client';
 import { useMemo, useState } from 'react';
-import { Button, Card, Typography } from 'antd';
+import { Button } from '@heroui/react';
 import { useResourceRows } from '@/components/use-resource';
 import EditableCell from '@/components/editable-cell';
 import PeriodSlotsModal from './period-slots-modal';
@@ -27,57 +27,65 @@ export default function ClassTimetable() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
-        <Typography.Title level={5} style={{ margin: 0 }}>班级课表</Typography.Title>
-        <Button size="small" onClick={() => setSlotModalOpen(true)}>时段管理</Button>
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="m-0 text-base font-semibold text-slate-800">班级课表</h3>
+        <Button variant="outline" size="sm" onPress={() => setSlotModalOpen(true)}>时段管理</Button>
       </div>
-      <div className="grid grid-cols-2 gap-3 mb-4">
-        <Card size="small"><div className="text-xs text-slate-500">每周正课总课时</div><div className="text-xl font-semibold mt-0.5">{stats.total}</div></Card>
-        <Card size="small"><div className="text-xs text-slate-500">语文任教课时</div><div className="text-xl font-semibold mt-0.5 text-blue-600">{stats.chinese}</div></Card>
+      <div className="mb-4 grid grid-cols-2 gap-3">
+        <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
+          <div className="text-xs text-slate-500">每周正课总课时</div>
+          <div className="mt-1 text-xl font-semibold text-slate-800">{stats.total}</div>
+        </div>
+        <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
+          <div className="text-xs text-slate-500">语文任教课时</div>
+          <div className="mt-1 text-xl font-semibold text-blue-600">{stats.chinese}</div>
+        </div>
       </div>
-      <Card size="small" className="overflow-x-auto mb-4" loading={slotLoading || ttLoading}>
-        <table className="w-full text-sm border-collapse">
-          <thead>
-            <tr className="bg-gray-50 text-xs text-slate-500">
-              <th className="px-2 py-2 text-left border-b border-gray-200">时段</th>
-              {DAYS.map(d => <th key={d} className="px-2 py-2 border-b border-gray-200">{d}</th>)}
-            </tr>
-          </thead>
-          <tbody>
-            {ordered.map(slot => {
-              const isSubject = slot.kind === '正课';
-              return (
-                <tr key={slot.id}>
-                  <td className="px-2 py-2 border-b border-gray-100 whitespace-nowrap">
-                    <div className="text-xs text-slate-700">{String(slot.name)}</div>
-                    <div className="text-xs text-slate-400">{String(slot.start_time)}-{String(slot.end_time)}</div>
-                  </td>
-                  {DAYS.map(d => {
-                    const wd = DAYS.indexOf(d) + 1;
-                    const key = `${wd}-${slot.id}`;
-                    const r = grid.get(key);
-                    if (!isSubject) {
-                      return <td key={key} className="px-2 py-2 border-b border-gray-100 text-center"><span className="text-xs text-slate-400">{KIND_LABELS[String(slot.kind)]}</span></td>;
-                    }
-                    const chinese = r && r.is_chinese == 1;
-                    return (
-                      <td key={key} className={`px-2 py-2 border-b border-gray-100 text-center ${chinese ? 'bg-blue-50' : ''}`}>
-                        <EditableCell
-                          value={r ? r.subject : null}
-                          type="select"
-                          options={SUBJECTS}
-                          onSave={v => saveSubject(wd, Number(slot.id), v)}
-                          className={chinese ? 'text-blue-700 font-medium' : 'text-slate-700'}
-                        />
-                      </td>
-                    );
-                  })}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </Card>
+      {(slotLoading || ttLoading) ? <div className="space-y-3"><div className="h-10 rounded-lg bg-gray-100 animate-pulse" /><div className="h-10 rounded-lg bg-gray-100 animate-pulse" /></div> : (
+        <div className="mb-4 overflow-x-auto rounded-xl border border-gray-200 bg-white">
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr className="bg-gray-50 text-xs text-slate-500">
+                <th className="border-b border-gray-200 px-2 py-2 text-left">时段</th>
+                {DAYS.map(d => <th key={d} className="border-b border-gray-200 px-2 py-2">{d}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {ordered.map(slot => {
+                const isSubject = slot.kind === '正课';
+                return (
+                  <tr key={slot.id}>
+                    <td className="border-b border-gray-100 px-2 py-2 whitespace-nowrap">
+                      <div className="text-xs text-slate-700">{String(slot.name)}</div>
+                      <div className="text-xs text-slate-400">{String(slot.start_time)}-{String(slot.end_time)}</div>
+                    </td>
+                    {DAYS.map(d => {
+                      const wd = DAYS.indexOf(d) + 1;
+                      const key = `${wd}-${slot.id}`;
+                      const r = grid.get(key);
+                      if (!isSubject) {
+                        return <td key={key} className="border-b border-gray-100 px-2 py-2 text-center"><span className="text-xs text-slate-400">{KIND_LABELS[String(slot.kind)]}</span></td>;
+                      }
+                      const chinese = r && r.is_chinese == 1;
+                      return (
+                        <td key={key} className={`border-b border-gray-100 px-2 py-2 text-center ${chinese ? 'bg-blue-50' : ''}`}>
+                          <EditableCell
+                            value={r ? r.subject : null}
+                            type="select"
+                            options={SUBJECTS}
+                            onSave={v => saveSubject(wd, Number(slot.id), v)}
+                            className={chinese ? 'font-medium text-blue-700' : 'text-slate-700'}
+                          />
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
       <PeriodSlotsModal open={slotModalOpen} onClose={() => { setSlotModalOpen(false); void slotsReload(); void ttReload(); }} />
     </div>
   );

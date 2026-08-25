@@ -1,6 +1,6 @@
 'use client';
-import { useEffect } from 'react';
-import { App, Modal, Form, Select, Input } from 'antd';
+import { useMemo } from 'react';
+import FormModal, { type FieldDef } from '@/components/form-modal';
 import type { Row } from '@/lib/types';
 
 const WEEKDAYS = ['周一', '周二', '周三', '周四', '周五'];
@@ -15,49 +15,44 @@ export default function TeacherScheduleModal({ open, onClose, editing, slots, on
   slots: Row[];
   onSave: (v: Values) => Promise<void>;
 }) {
-  const { message } = App.useApp();
-  const [form] = Form.useForm();
-  const slotOptions = [...slots].sort((a, b) => Number(a.seq) - Number(b.seq))
-    .map(s => ({ value: Number(s.id), label: `${s.name} ${s.start_time}-${s.end_time}` }));
+  const fields = useMemo<FieldDef[]>(() => [
+    { key: 'weekday', label: '星期', type: 'select', required: true, options: WEEKDAYS.map((w, i) => ({ value: String(i + 1), label: w })) },
+    {
+      key: 'period_id', label: '时段', type: 'select', required: true,
+      options: [...slots].sort((a, b) => Number(a.seq) - Number(b.seq)).map(s => ({ value: String(s.id), label: `${s.name} ${s.start_time}-${s.end_time}` })),
+    },
+    { key: 'class_name', label: '目标班级', required: true, placeholder: '如 六年级（2）班' },
+    { key: 'subject', label: '科目', type: 'select', required: true, options: SUBJECT_OPTIONS },
+    { key: 'remark', label: '备注', type: 'textarea' },
+  ], [slots]);
 
-  useEffect(() => {
-    if (!open) return;
-    form.setFieldsValue(editing ? {
-      weekday: Number(editing.weekday),
-      period_id: Number(editing.period_id),
-      class_name: String(editing.class_name ?? ''),
-      subject: String(editing.subject ?? ''),
-      remark: String(editing.remark ?? ''),
-    } : { weekday: 1, period_id: undefined, class_name: '', subject: '', remark: '' });
-  }, [open, editing, form]);
+  const initial = editing ? {
+    weekday: String(editing.weekday ?? '1'),
+    period_id: String(editing.period_id ?? ''),
+    class_name: String(editing.class_name ?? ''),
+    subject: String(editing.subject ?? ''),
+    remark: String(editing.remark ?? ''),
+  } : { weekday: '1' };
 
-  const submit = async () => {
-    const v = await form.validateFields();
-    try {
-      await onSave({ weekday: Number(v.weekday), period_id: Number(v.period_id), class_name: v.class_name, subject: v.subject, remark: v.remark ?? '' });
-      onClose();
-    } catch {
-      message.error('保存失败');
-    }
+  const submit = async (v: Record<string, string | number | null>) => {
+    await onSave({
+      weekday: Number(v.weekday ?? 1),
+      period_id: Number(v.period_id ?? 0),
+      class_name: String(v.class_name ?? ''),
+      subject: String(v.subject ?? ''),
+      remark: String(v.remark ?? ''),
+    });
   };
 
   return (
-    <Modal title={editing ? '编辑授课' : '新增授课'} open={open} onCancel={onClose} onOk={() => void submit()} destroyOnHidden>
-      <Form form={form} layout="vertical">
-        <Form.Item name="weekday" label="星期" rules={[{ required: true, message: '请选择星期' }]}>
-          <Select options={WEEKDAYS.map((w, i) => ({ value: i + 1, label: w }))} />
-        </Form.Item>
-        <Form.Item name="period_id" label="时段" rules={[{ required: true, message: '请选择时段' }]}>
-          <Select options={slotOptions} />
-        </Form.Item>
-        <Form.Item name="class_name" label="目标班级" rules={[{ required: true, message: '请输入班级' }]}>
-          <Input placeholder="如 六年级（2）班" />
-        </Form.Item>
-        <Form.Item name="subject" label="科目" rules={[{ required: true, message: '请选择科目' }]}>
-          <Select options={SUBJECT_OPTIONS.map(s => ({ value: s, label: s }))} />
-        </Form.Item>
-        <Form.Item name="remark" label="备注"><Input.TextArea rows={2} /></Form.Item>
-      </Form>
-    </Modal>
+    <FormModal
+      title={editing ? '编辑授课' : '新增授课'}
+      fields={fields}
+      open={open}
+      onClose={onClose}
+      onSubmit={submit}
+      initial={initial}
+      size="md"
+    />
   );
 }
