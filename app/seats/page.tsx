@@ -1,24 +1,27 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
-import { App, Button, Drawer, InputNumber, List, Popconfirm, Typography } from 'antd';
-import { DeleteOutlined, DownloadOutlined, RetweetOutlined } from '@ant-design/icons';
+import { Button, Input, Drawer } from '@heroui/react';
+import { Download, RefreshCw, Trash2 } from 'lucide-react';
+import Confirm from '@/components/confirm';
 import { del, get, post, put } from '@/lib/api-client';
 import type { Row } from '@/lib/types';
 import { downloadCsv } from '@/lib/csv';
+import { toast } from '@/lib/toast';
 
 const MAX_DIM = 20;
 
 export default function SeatsPage() {
-  const { message } = App.useApp();
   const [seats, setSeats] = useState<Row[]>([]);
   const [students, setStudents] = useState<Row[]>([]);
   const [cfg, setCfg] = useState({ row_count: 7, col_count: 8 });
   const [cfgId, setCfgId] = useState<number | null>(null);
-  const [rowDraft, setRowDraft] = useState(7);
-  const [colDraft, setColDraft] = useState(8);
+  const [rowDraft, setRowDraft] = useState('7');
+  const [colDraft, setColDraft] = useState('8');
   const [selected, setSelected] = useState<Row | null>(null);
   const [busy, setBusy] = useState(false);
   const [reloadTick, setReloadTick] = useState(0);
+  const [confirmRandom, setConfirmRandom] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -33,8 +36,8 @@ export default function SeatsPage() {
         const rowCount = Number(first.row_count) || 7;
         const colCount = Number(first.col_count) || 8;
         setCfg({ row_count: rowCount, col_count: colCount });
-        setRowDraft(rowCount);
-        setColDraft(colCount);
+        setRowDraft(String(rowCount));
+        setColDraft(String(colCount));
         setCfgId(Number(first.id));
       }
     });
@@ -54,10 +57,10 @@ export default function SeatsPage() {
     try {
       if (seat) await put(`/api/seats/${seat.id}`, { student_name: name });
       else await post('/api/seats', { row_index: selected.row_index, col_index: selected.col_index, student_name: name });
-      message.success(`已安排 ${name}`);
+      toast.success(`已安排 ${name}`);
       setSelected(null);
       setReloadTick(t => t + 1);
-    } catch { message.error('保存失败'); }
+    } catch { toast.error('保存失败'); }
   };
 
   const clearSeat = async () => {
@@ -65,12 +68,12 @@ export default function SeatsPage() {
     const seat = grid.get(`${selected.row_index}-${selected.col_index}`);
     if (!seat) return;
     try { await put(`/api/seats/${seat.id}`, { student_name: '' }); setSelected(null); setReloadTick(t => t + 1); }
-    catch { message.error('保存失败'); }
+    catch { toast.error('保存失败'); }
   };
 
   const applyConfig = async () => {
-    const rowCount = Math.min(MAX_DIM, Math.max(1, rowDraft));
-    const colCount = Math.min(MAX_DIM, Math.max(1, colDraft));
+    const rowCount = Math.min(MAX_DIM, Math.max(1, Number(rowDraft) || 1));
+    const colCount = Math.min(MAX_DIM, Math.max(1, Number(colDraft) || 1));
     setBusy(true);
     try {
       if (cfgId != null) await put(`/api/classroom_config/${cfgId}`, { row_count: rowCount, col_count: colCount });
@@ -78,15 +81,14 @@ export default function SeatsPage() {
         const row = await post<Row>('/api/classroom_config', { row_count: rowCount, col_count: colCount });
         setCfgId(Number(row.id));
       }
-      // 移除缩出格子外的旧座位记录
       const toDelete = seats.filter(s => Number(s.row_index) >= rowCount || Number(s.col_index) >= colCount);
       if (toDelete.length) await Promise.all(toDelete.map(s => del(`/api/seats/${s.id}`)));
       setCfg({ row_count: rowCount, col_count: colCount });
-      setRowDraft(rowCount);
-      setColDraft(colCount);
+      setRowDraft(String(rowCount));
+      setColDraft(String(colCount));
       setReloadTick(t => t + 1);
-      message.success('已应用');
-    } catch { message.error('保存失败'); }
+      toast.success('已应用');
+    } catch { toast.error('保存失败'); }
     setBusy(false);
   };
 
@@ -98,9 +100,9 @@ export default function SeatsPage() {
       });
       setSelected(null);
       setReloadTick(t => t + 1);
-      if (res.placed < res.total) message.warning(`座位不够，仅安排了 ${res.placed}/${res.total} 人`);
-      else message.success('已按规则随机排座');
-    } catch { message.error('随机排座失败'); }
+      if (res.placed < res.total) toast.warning(`座位不够，仅安排了 ${res.placed}/${res.total} 人`);
+      else toast.success('已按规则随机排座');
+    } catch { toast.error('随机排座失败'); }
     setBusy(false);
   };
 
@@ -110,8 +112,8 @@ export default function SeatsPage() {
       await post('/api/seats/clear', {});
       setSelected(null);
       setReloadTick(t => t + 1);
-      message.success('已移除全部座位学生');
-    } catch { message.error('移除失败'); }
+      toast.success('已移除全部座位学生');
+    } catch { toast.error('移除失败'); }
     setBusy(false);
   };
 
@@ -128,46 +130,37 @@ export default function SeatsPage() {
 
   return (
     <div>
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-        <Typography.Title level={4} style={{ margin: 0 }}>排座位</Typography.Title>
-        <Button icon={<DownloadOutlined />} onClick={exportSeats}>导出</Button>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="m-0 text-lg font-semibold text-slate-800">排座位</h2>
+        <Button variant="outline" size="sm" onPress={exportSeats}><Download size={16} /> 导出</Button>
       </div>
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <div className="flex items-center gap-1.5 text-sm text-slate-600">
           <span>行</span>
-          <InputNumber min={1} max={MAX_DIM} value={rowDraft} onChange={v => setRowDraft(Number(v) || 1)} className="w-16" />
+          <Input type="number" className="w-16" value={rowDraft} onChange={e => setRowDraft(e.target.value)} />
           <span>列</span>
-          <InputNumber min={1} max={MAX_DIM} value={colDraft} onChange={v => setColDraft(Number(v) || 1)} className="w-16" />
-          <Button size="small" onClick={applyConfig} loading={busy}>应用</Button>
+          <Input type="number" className="w-16" value={colDraft} onChange={e => setColDraft(e.target.value)} />
+          <Button variant="primary" size="sm" onPress={applyConfig} isDisabled={busy}>应用</Button>
         </div>
         <div className="flex items-center gap-2">
-          <Popconfirm
-            title="将清空当前座位，并按「竖排为小组、每组均衡分配 1-6 层级」重新随机排座，确认？"
-            onConfirm={randomSeat}
-            okText="排座"
-            cancelText="取消"
-          >
-            <Button icon={<RetweetOutlined />} loading={busy}>随机排座</Button>
-          </Popconfirm>
-          <Popconfirm title="将移除所有座位上的学生，确认？" onConfirm={clearAll} okText="移除" cancelText="取消">
-            <Button danger icon={<DeleteOutlined />} loading={busy}>全部移除</Button>
-          </Popconfirm>
+          <Button variant="outline" size="sm" isDisabled={busy} onPress={() => setConfirmRandom(true)}><RefreshCw size={14} /> 随机排座</Button>
+          <Button variant="danger" size="sm" isDisabled={busy} onPress={() => setConfirmClear(true)}><Trash2 size={14} /> 全部移除</Button>
         </div>
       </div>
 
       <p className="mb-3 text-xs text-slate-500">竖排为一个小组。点击任意座位安排学生；已落座的学生再次点击可移除。</p>
-      <div className="border border-gray-200 rounded-lg p-4">
-        <div className="mx-auto mb-4 w-40 text-center py-1.5 bg-slate-800 text-white text-xs rounded">讲 台</div>
+      <div className="rounded-xl border border-gray-200 bg-white p-4">
+        <div className="mx-auto mb-4 w-40 rounded bg-slate-800 py-1.5 text-center text-xs text-white">讲 台</div>
         <div className="overflow-x-auto">
-          <div className="min-w-max mx-auto">
-            <div className="flex justify-center gap-2 mb-1">
+          <div className="mx-auto min-w-max">
+            <div className="mb-1 flex justify-center gap-2">
               {Array.from({ length: cfg.col_count }).map((_, c) => (
                 <div key={c} className="w-14 text-center text-xs text-slate-400">第{c + 1}组</div>
               ))}
             </div>
             {Array.from({ length: cfg.row_count }).map((_, r) => (
-              <div key={r} className="flex justify-center gap-2 mb-2">
+              <div key={r} className="mb-2 flex justify-center gap-2">
                 {Array.from({ length: cfg.col_count }).map((_, c) => {
                   const seat = grid.get(`${r}-${c}`);
                   const name = String(seat?.student_name ?? '');
@@ -175,7 +168,7 @@ export default function SeatsPage() {
                     <button
                       key={c}
                       onClick={() => setSelected(seat ?? { row_index: r, col_index: c, student_name: '' })}
-                      className={`w-14 h-12 rounded-md border text-xs flex items-center justify-center transition-colors ${name ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-gray-200 text-gray-300'}`}
+                      className={`flex h-12 w-14 items-center justify-center rounded-md border text-xs transition-colors ${name ? 'border-blue-200 bg-blue-50 text-blue-700' : 'border-gray-200 bg-white text-gray-300'}`}
                     >
                       {name || '＋'}
                     </button>
@@ -187,25 +180,33 @@ export default function SeatsPage() {
         </div>
       </div>
 
-      <Drawer
-        title={selected ? `${Number(selected.row_index) + 1} 排 ${Number(selected.col_index) + 1} 座（${String(selected.student_name ?? '空')}）` : '安排座位'}
-        open={!!selected}
-        onClose={() => setSelected(null)}
-        size={320}
-      >
-        <List
-          size="small"
-          dataSource={studentNames}
-          renderItem={(s) => (
-            <List.Item>
-              <Button block={false} onClick={() => void assign(String(s.name))}>{String(s.name)}</Button>
-            </List.Item>
-          )}
-        />
-        {selected && String(selected.student_name ?? '') && (
-          <Button type="link" danger style={{ paddingLeft: 0 }} onClick={() => void clearSeat()}>移除该座位学生</Button>
-        )}
+      <Drawer isOpen={!!selected} onOpenChange={(o) => { if (!o) setSelected(null); }}>
+        <Drawer.Backdrop />
+        <Drawer.Content placement="right">
+          <Drawer.Header>
+            <Drawer.Heading>
+              {selected ? `${Number(selected.row_index) + 1} 排 ${Number(selected.col_index) + 1} 座（${String(selected.student_name ?? '空')}）` : '安排座位'}
+            </Drawer.Heading>
+          </Drawer.Header>
+          <Drawer.Body>
+            <div className="space-y-1">
+              {studentNames.map(s => (
+                <Button key={s.id} variant="outline" size="sm" fullWidth className="justify-start" onPress={() => void assign(String(s.name))}>
+                  {String(s.name)}
+                </Button>
+              ))}
+            </div>
+            {selected && String(selected.student_name ?? '') && (
+              <Button variant="danger-soft" size="sm" className="mt-3" onPress={() => void clearSeat()}>移除该座位学生</Button>
+            )}
+          </Drawer.Body>
+        </Drawer.Content>
       </Drawer>
+
+      <Confirm open={confirmRandom} onOpenChange={setConfirmRandom} title="随机排座"
+        message="将清空当前座位，并按「竖排为小组、每组均衡分配 1-6 层级」重新随机排座，确认？" confirmText="排座" onConfirm={randomSeat} />
+      <Confirm open={confirmClear} onOpenChange={setConfirmClear} title="全部移除"
+        message="将移除所有座位上的学生，确认？" confirmText="移除" danger onConfirm={clearAll} />
     </div>
   );
 }
