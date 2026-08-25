@@ -52,6 +52,7 @@ export default function GradesPage() {
         <Select
           aria-label="选择考试"
           className="w-52"
+          placeholder="选择考试"
           selectedKey={currentExam === '' ? '' : currentExam}
           onSelectionChange={k => setExam(k === null || k === '' ? null : String(k))}
         >
