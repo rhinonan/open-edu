@@ -66,7 +66,7 @@ function ShellHeader({ mobile, me, onOpenDrawer }: { mobile: boolean; me: Me | n
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const mobile = useMediaQuery('(max-width: 767px)');
+  const mobile = useMediaQuery('(max-width: 767px)', { initializeWithValue: false });
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [me, setMe] = useState<Me | null>(null);
 
