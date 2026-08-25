@@ -1,17 +1,18 @@
 'use client';
 import { useMemo, useState } from 'react';
-import { Card, Segmented, Select, Statistic, Typography } from 'antd';
+import { ListBox, Select, Skeleton, ToggleButton, ToggleButtonGroup } from '@heroui/react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { useResourceRows } from '@/components/use-resource';
+import StatCard from '@/components/stat-card';
 import EditableCell from '@/components/editable-cell';
+import { useResourceRows } from '@/components/use-resource';
 import { CategoryColor } from '@/lib/color-utils';
 
 const SUBJECTS = ['语文', '数学', '英语'];
 
 export default function GradesPage() {
   const { rows, loading, update } = useResourceRows('grades');
-  const [exam, setExam] = useState<string | undefined>(undefined);
-  const [subject, setSubject] = useState('语文');
+  const [exam, setExam] = useState<string | null>(null);
+  const [subject, setSubject] = useState<string>('语文');
 
   const exams = useMemo(() => [...new Set(rows.map(r => String(r.exam_name)))], [rows]);
   const latestExam = useMemo(() => exams[exams.length - 1] ?? '', [exams]);
@@ -46,18 +47,34 @@ export default function GradesPage() {
 
   return (
     <div>
-      <Typography.Title level={4} style={{ marginTop: 0 }}>成绩分析</Typography.Title>
-      <div className="flex flex-wrap items-center gap-3 mb-4">
-        <Select style={{ width: 200 }} value={currentExam} onChange={setExam} options={exams.map(e => ({ value: e, label: e || '未命名考试' }))} />
-        <Segmented options={SUBJECTS} value={subject} onChange={(v) => setSubject(String(v))} />
+      <h2 className="mb-4 text-lg font-semibold text-slate-800">成绩分析</h2>
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <Select
+          aria-label="选择考试"
+          className="w-52"
+          selectedKey={currentExam === '' ? '' : currentExam}
+          onSelectionChange={k => setExam(k === null || k === '' ? null : String(k))}
+        >
+          <Select.Trigger><Select.Value /></Select.Trigger>
+          <Select.Indicator />
+          <Select.Popover>
+            <ListBox>
+              {exams.map(e => <ListBox.Item key={e} id={e}>{e || '未命名考试'}</ListBox.Item>)}
+            </ListBox>
+          </Select.Popover>
+        </Select>
+        <ToggleButtonGroup selectionMode="single" selectedKeys={new Set([subject])} onSelectionChange={(keys) => { const k = [...keys][0]; if (k) setSubject(String(k)); }}>
+          {SUBJECTS.map(s => <ToggleButton key={s} id={s}>{s}</ToggleButton>)}
+        </ToggleButtonGroup>
       </div>
-      {loading ? <Card loading /> : (
+      {loading ? <div className="space-y-3"><Skeleton className="h-10 rounded-lg" /><Skeleton className="h-40 rounded-lg" /></div> : (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-            {stats.map(s => <Card key={s.title} size="small"><Statistic title={s.title} value={s.value} /></Card>)}
+          <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+            {stats.map(s => <StatCard key={s.title} title={s.title} value={s.value} />)}
           </div>
-          <div className="grid md:grid-cols-2 gap-4">
-            <Card size="small"><h3 className="mb-3 text-sm font-semibold text-slate-600" style={{ marginTop: 0 }}>分数段分布（直方图）</h3>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="rounded-xl border border-gray-200 bg-white p-4">
+              <h3 className="mb-3 text-sm font-semibold text-slate-600">分数段分布（直方图）</h3>
               <div className="h-56">
                 <ResponsiveContainer width="100%" height={224}>
                   <BarChart data={histogram}>
@@ -69,12 +86,16 @@ export default function GradesPage() {
                   </BarChart>
                 </ResponsiveContainer>
               </div>
-            </Card>
-            <Card size="small"><h3 className="mb-3 text-sm font-semibold text-slate-600" style={{ marginTop: 0 }}>成绩明细（点击可改）</h3>
+            </div>
+            <div className="rounded-xl border border-gray-200 bg-white p-4">
+              <h3 className="mb-3 text-sm font-semibold text-slate-600">成绩明细（点击可改）</h3>
               <div className="max-h-72 overflow-y-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-gray-50 text-xs text-slate-500">
-                    <tr><th className="px-3 py-2 text-left font-medium border-b border-gray-200">姓名</th><th className="px-3 py-2 text-left font-medium border-b border-gray-200">分数</th></tr>
+                    <tr>
+                      <th className="border-b border-gray-200 px-3 py-2 text-left font-medium">姓名</th>
+                      <th className="border-b border-gray-200 px-3 py-2 text-left font-medium">分数</th>
+                    </tr>
                   </thead>
                   <tbody>
                     {current.map(r => (
@@ -86,7 +107,7 @@ export default function GradesPage() {
                   </tbody>
                 </table>
               </div>
-            </Card>
+            </div>
           </div>
         </>
       )}
