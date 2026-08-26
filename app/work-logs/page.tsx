@@ -73,7 +73,7 @@ export default function WorkLogsPage() {
       <TableToolbar title="工作留痕" columns={TOOLBAR_COLS} hidden={hidden} onToggleColumn={toggle} rows={rows} onAdd={() => setAddOpen(true)} />
       <DataTable label="工作留痕" columns={columns} rows={rows} loading={loading} onSave={update}
         actions={(r) => <Button variant="danger-soft" size="sm" onPress={() => setDeleting(r)}>删除</Button>} />
-      <div className="mt-4 rounded-xl border border-gray-200 bg-white p-4">
+      <div className="mt-4 rounded-xl bg-white p-4">
         <h3 className="mb-3 text-sm font-semibold text-slate-600">工作类型分布（环形饼图）</h3>
         <div className="h-56">
           <ResponsiveContainer width="100%" height={224}>

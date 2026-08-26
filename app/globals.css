@@ -1,18 +1,18 @@
 @import "@heroui/styles";
 
 @theme {
-  --color-navy: #1d2b52;        /* 深空藏蓝侧边栏 */
-  --color-navy-soft: #26365f;
-  --color-bg: #f3f5f9;          /* 浅灰白页面底 */
-  --color-accent: #2aa7e6;      /* 湖蓝主按钮 */
-  --color-blue: #3b82f6;
+  /* 补充自定义品牌色（业务页 / 图表用） */
+  --color-navy: #1d2b52;
   --color-teal: #14b8a6;
   --color-purple: #8b5cf6;
   --color-amber: #f59e0b;
   --color-red: #ef4444;
   --color-warn: #eab308;
+  --color-blue: #3b82f6;
 }
 
 body {
-  @apply bg-bg text-slate-800 antialiased;
+  @apply bg-background text-foreground antialiased;
+  font-family: "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei UI", "Microsoft YaHei", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-weight: 400;
 }

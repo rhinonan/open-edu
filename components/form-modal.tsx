@@ -82,68 +82,71 @@ export default function FormModal({ title, fields, open, onClose, onSubmit, init
 
   return (
     <Modal isOpen={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <Modal.Backdrop isDismissable />
-      <Modal.Container placement="center" size={size}>
-        <Modal.Header><Modal.Heading>{title}</Modal.Heading></Modal.Header>
-        <Modal.Body>
-          <div className="space-y-4">
-            {fields.map(f => {
-              const opts = optsOf(f.options);
-              return (
-                <div key={f.key}>
-                  <Label isRequired={f.required} className="mb-1 block text-sm text-slate-700">{f.label}</Label>
-                  {f.type === 'textarea' ? (
-                    <TextArea
-                      rows={2} fullWidth
-                      value={String(values[f.key] ?? '')}
-                      onChange={e => set(f.key, e.target.value)}
-                      aria-invalid={errors[f.key] ? true : undefined}
-                    />
-                  ) : f.type === 'date' ? (
-                    <input
-                      type="date"
-                      className={dateInputCls}
-                      value={String(values[f.key] ?? '')}
-                      onChange={e => set(f.key, e.target.value)}
-                    />
-                  ) : f.type === 'select' ? (
-                    <Select
-                      aria-label={f.label}
-                      fullWidth
-                      placeholder={f.placeholder ?? '请选择'}
-                      isInvalid={!!errors[f.key]}
-                      selectedKey={values[f.key] == null || values[f.key] === '' ? '' : String(values[f.key])}
-                      onSelectionChange={(k) => set(f.key, k === null ? '' : String(k))}
-                    >
-                      <Select.Trigger><Select.Value /></Select.Trigger>
-                      <Select.Indicator />
-                      <Select.Popover>
-                        <ListBox>
-                          {opts.map(o => <ListBox.Item key={o.value} id={o.value}>{o.label}</ListBox.Item>)}
-                        </ListBox>
-                      </Select.Popover>
-                    </Select>
-                  ) : (
-                    <Input
-                      fullWidth
-                      type={f.type === 'number' ? 'number' : 'text'}
-                      value={String(values[f.key] ?? '')}
-                      onChange={e => set(f.key, e.target.value)}
-                      placeholder={f.placeholder}
-                      aria-invalid={errors[f.key] ? true : undefined}
-                    />
-                  )}
-                  {errors[f.key] && <p className="mt-1 text-xs text-red-600">{errors[f.key]}</p>}
-                </div>
-              );
-            })}
-          </div>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="ghost" onPress={onClose} isDisabled={busy}>取消</Button>
-          <Button variant="primary" onPress={() => void submit()} isDisabled={busy}>{busy ? '保存中…' : '保存'}</Button>
-        </Modal.Footer>
-      </Modal.Container>
+      <Modal.Backdrop isDismissable>
+        <Modal.Container placement="center" size={size}>
+          <Modal.Dialog>
+            <Modal.Header><Modal.Heading>{title}</Modal.Heading></Modal.Header>
+            <Modal.Body>
+              <div className="space-y-4">
+                {fields.map(f => {
+                  const opts = optsOf(f.options);
+                  return (
+                    <div key={f.key}>
+                      <Label isRequired={f.required} className="mb-1 block text-sm text-slate-700">{f.label}</Label>
+                      {f.type === 'textarea' ? (
+                        <TextArea
+                          rows={2} fullWidth
+                          value={String(values[f.key] ?? '')}
+                          onChange={e => set(f.key, e.target.value)}
+                          aria-invalid={errors[f.key] ? true : undefined}
+                        />
+                      ) : f.type === 'date' ? (
+                        <input
+                          type="date"
+                          className={dateInputCls}
+                          value={String(values[f.key] ?? '')}
+                          onChange={e => set(f.key, e.target.value)}
+                        />
+                      ) : f.type === 'select' ? (
+                        <Select
+                          aria-label={f.label}
+                          fullWidth
+                          placeholder={f.placeholder ?? '请选择'}
+                          isInvalid={!!errors[f.key]}
+                          selectedKey={values[f.key] == null || values[f.key] === '' ? '' : String(values[f.key])}
+                          onSelectionChange={(k) => set(f.key, k === null ? '' : String(k))}
+                        >
+                          <Select.Trigger><Select.Value /></Select.Trigger>
+                          <Select.Indicator />
+                          <Select.Popover>
+                            <ListBox>
+                              {opts.map(o => <ListBox.Item key={o.value} id={o.value}>{o.label}</ListBox.Item>)}
+                            </ListBox>
+                          </Select.Popover>
+                        </Select>
+                      ) : (
+                        <Input
+                          fullWidth
+                          type={f.type === 'number' ? 'number' : 'text'}
+                          value={String(values[f.key] ?? '')}
+                          onChange={e => set(f.key, e.target.value)}
+                          placeholder={f.placeholder}
+                          aria-invalid={errors[f.key] ? true : undefined}
+                        />
+                      )}
+                      {errors[f.key] && <p className="mt-1 text-xs text-red-600">{errors[f.key]}</p>}
+                    </div>
+                  );
+                })}
+              </div>
+            </Modal.Body>
+            <Modal.Footer>
+              <Button variant="ghost" onPress={onClose} isDisabled={busy}>取消</Button>
+              <Button variant="primary" onPress={() => void submit()} isDisabled={busy}>{busy ? '保存中…' : '保存'}</Button>
+            </Modal.Footer>
+          </Modal.Dialog>
+        </Modal.Container>
+      </Modal.Backdrop>
     </Modal>
   );
 }

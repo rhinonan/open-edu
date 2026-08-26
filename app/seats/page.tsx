@@ -150,7 +150,7 @@ export default function SeatsPage() {
       </div>
 
       <p className="mb-3 text-xs text-slate-500">竖排为一个小组。点击任意座位安排学生；已落座的学生再次点击可移除。</p>
-      <div className="rounded-xl border border-gray-200 bg-white p-4">
+      <div className="rounded-xl bg-white p-4">
         <div className="mx-auto mb-4 w-40 rounded bg-slate-800 py-1.5 text-center text-xs text-white">讲 台</div>
         <div className="overflow-x-auto">
           <div className="mx-auto min-w-max">
@@ -181,26 +181,29 @@ export default function SeatsPage() {
       </div>
 
       <Drawer isOpen={!!selected} onOpenChange={(o) => { if (!o) setSelected(null); }}>
-        <Drawer.Backdrop />
-        <Drawer.Content placement="right">
-          <Drawer.Header>
-            <Drawer.Heading>
-              {selected ? `${Number(selected.row_index) + 1} 排 ${Number(selected.col_index) + 1} 座（${String(selected.student_name ?? '空')}）` : '安排座位'}
-            </Drawer.Heading>
-          </Drawer.Header>
-          <Drawer.Body>
-            <div className="space-y-1">
-              {studentNames.map(s => (
-                <Button key={s.id} variant="outline" size="sm" fullWidth className="justify-start" onPress={() => void assign(String(s.name))}>
-                  {String(s.name)}
-                </Button>
-              ))}
-            </div>
-            {selected && String(selected.student_name ?? '') && (
-              <Button variant="danger-soft" size="sm" className="mt-3" onPress={() => void clearSeat()}>移除该座位学生</Button>
-            )}
-          </Drawer.Body>
-        </Drawer.Content>
+        <Drawer.Backdrop>
+          <Drawer.Content placement="right">
+            <Drawer.Dialog>
+              <Drawer.Header>
+                <Drawer.Heading>
+                  {selected ? `${Number(selected.row_index) + 1} 排 ${Number(selected.col_index) + 1} 座（${String(selected.student_name ?? '空')}）` : '安排座位'}
+                </Drawer.Heading>
+              </Drawer.Header>
+              <Drawer.Body>
+                <div className="space-y-1">
+                  {studentNames.map(s => (
+                    <Button key={s.id} variant="outline" size="sm" fullWidth className="justify-start" onPress={() => void assign(String(s.name))}>
+                      {String(s.name)}
+                    </Button>
+                  ))}
+                </div>
+                {selected && String(selected.student_name ?? '') && (
+                  <Button variant="danger-soft" size="sm" className="mt-3" onPress={() => void clearSeat()}>移除该座位学生</Button>
+                )}
+              </Drawer.Body>
+            </Drawer.Dialog>
+          </Drawer.Content>
+        </Drawer.Backdrop>
       </Drawer>
 
       <Confirm open={confirmRandom} onOpenChange={setConfirmRandom} title="随机排座"

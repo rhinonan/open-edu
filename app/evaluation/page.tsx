@@ -37,7 +37,7 @@ export default function EvaluationPage() {
     <div>
       <TableToolbar title="综合素质评价" columns={TOOLBAR_COLS} hidden={hidden} onToggleColumn={toggle} rows={rows} />
       <div className="mb-4 grid gap-4 md:grid-cols-2">
-        <div className="rounded-xl border border-gray-200 bg-white p-4">
+        <div className="rounded-xl bg-white p-4">
           <h3 className="mb-3 text-sm font-semibold text-slate-600">各维度平均分（满分 5）</h3>
           <div className="h-56">
             <ResponsiveContainer width="100%" height={224}>
@@ -51,7 +51,7 @@ export default function EvaluationPage() {
             </ResponsiveContainer>
           </div>
         </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-4">
+        <div className="rounded-xl bg-white p-4">
           <h3 className="mb-3 text-sm font-semibold text-slate-600">评价说明</h3>
           <p className="text-xs leading-relaxed text-slate-500">每项按 1-5 打分（1 很差 / 5 优秀）。点击分数直接修改，实时保存。评语在表格底部。</p>
         </div>

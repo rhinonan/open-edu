@@ -74,7 +74,7 @@ export default function GradesPage() {
             {stats.map(s => <StatCard key={s.title} title={s.title} value={s.value} />)}
           </div>
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="rounded-xl border border-gray-200 bg-white p-4">
+            <div className="rounded-xl bg-white p-4">
               <h3 className="mb-3 text-sm font-semibold text-slate-600">分数段分布（直方图）</h3>
               <div className="h-56">
                 <ResponsiveContainer width="100%" height={224}>
@@ -88,7 +88,7 @@ export default function GradesPage() {
                 </ResponsiveContainer>
               </div>
             </div>
-            <div className="rounded-xl border border-gray-200 bg-white p-4">
+            <div className="rounded-xl bg-white p-4">
               <h3 className="mb-3 text-sm font-semibold text-slate-600">成绩明细（点击可改）</h3>
               <div className="max-h-72 overflow-y-auto">
                 <table className="w-full text-sm">

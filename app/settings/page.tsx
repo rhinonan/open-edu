@@ -41,7 +41,7 @@ export default function SettingsPage() {
     <div>
       <h2 className="mb-4 text-lg font-semibold text-slate-800">系统设置</h2>
       <div className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-xl border border-gray-200 bg-white p-4">
+        <div className="rounded-xl bg-white p-4">
           <h3 className="mb-3 text-sm font-semibold text-slate-600">班级基础信息</h3>
           <div className="space-y-3">
             <div><Label className="mb-1 block text-sm text-slate-700">班级名称</Label><Input fullWidth value={cls.name} onChange={e => setCls(c => ({ ...c, name: e.target.value }))} /></div>
@@ -52,7 +52,7 @@ export default function SettingsPage() {
         </div>
         {(isAdmin || me?.user?.class_id) && (
           <div className="space-y-4">
-            <div className="rounded-xl border border-gray-200 bg-white p-4">
+            <div className="rounded-xl bg-white p-4">
               <h3 className="mb-3 text-sm font-semibold text-slate-600">数据维护</h3>
               <div className="flex flex-col gap-2">
                 {me?.user?.class_id && (
