@@ -67,8 +67,7 @@ export default function EditableCell({ value, type = 'text', options, nullOnEmpt
         selectedKey={value === null || value === '' ? '' : String(value)}
         onSelectionChange={(k) => void save(k === null || k === '' ? null : String(k))}
       >
-        <Select.Trigger><Select.Value /></Select.Trigger>
-        <Select.Indicator />
+        <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
         <Select.Popover>
           <ListBox>
             {options.map(o => <ListBox.Item key={o} id={o}>{o === '' ? '（清空）' : o}</ListBox.Item>)}

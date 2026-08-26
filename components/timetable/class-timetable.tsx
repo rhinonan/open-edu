@@ -1,6 +1,6 @@
 'use client';
 import { useMemo, useState } from 'react';
-import { Button } from '@heroui/react';
+import { Button, Skeleton, Table } from '@heroui/react';
 import { useResourceRows } from '@/components/use-resource';
 import EditableCell from '@/components/editable-cell';
 import PeriodSlotsModal from './period-slots-modal';
@@ -41,34 +41,38 @@ export default function ClassTimetable() {
           <div className="mt-1 text-xl font-semibold text-blue-600">{stats.chinese}</div>
         </div>
       </div>
-      {(slotLoading || ttLoading) ? <div className="space-y-3"><div className="h-10 rounded-lg bg-gray-100 animate-pulse" /><div className="h-10 rounded-lg bg-gray-100 animate-pulse" /></div> : (
-        <div className="mb-4 overflow-x-auto rounded-xl border border-gray-200 bg-white">
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr className="bg-gray-50 text-xs text-slate-500">
-                <th className="border-b border-gray-200 px-2 py-2 text-left">时段</th>
-                {DAYS.map(d => <th key={d} className="border-b border-gray-200 px-2 py-2">{d}</th>)}
-              </tr>
-            </thead>
-            <tbody>
+      {(slotLoading || ttLoading) ? (
+        <div className="space-y-3">
+          <Skeleton className="h-10 rounded-lg" />
+          <Skeleton className="h-10 rounded-lg" />
+          <Skeleton className="h-10 rounded-lg" />
+        </div>
+      ) : (
+        <Table.Root className="mb-4">
+          <Table.Content aria-label="班级课表">
+            <Table.Header>
+              <Table.Column id="period" isRowHeader>时段</Table.Column>
+              {DAYS.map(d => <Table.Column key={d} id={d}>{d}</Table.Column>)}
+            </Table.Header>
+            <Table.Body>
               {ordered.map(slot => {
                 const isSubject = slot.kind === '正课';
                 return (
-                  <tr key={slot.id}>
-                    <td className="border-b border-gray-100 px-2 py-2 whitespace-nowrap">
-                      <div className="text-xs text-slate-700">{String(slot.name)}</div>
+                  <Table.Row key={slot.id} id={(slot.id as number) ?? slot.id}>
+                    <Table.Cell>
+                      <div className="text-xs font-medium text-slate-700">{String(slot.name)}</div>
                       <div className="text-xs text-slate-400">{String(slot.start_time)}-{String(slot.end_time)}</div>
-                    </td>
+                    </Table.Cell>
                     {DAYS.map(d => {
                       const wd = DAYS.indexOf(d) + 1;
                       const key = `${wd}-${slot.id}`;
                       const r = grid.get(key);
                       if (!isSubject) {
-                        return <td key={key} className="border-b border-gray-100 px-2 py-2 text-center"><span className="text-xs text-slate-400">{KIND_LABELS[String(slot.kind)]}</span></td>;
+                        return <Table.Cell key={key} className="text-center"><span className="text-xs text-slate-400">{KIND_LABELS[String(slot.kind)]}</span></Table.Cell>;
                       }
                       const chinese = r && r.is_chinese == 1;
                       return (
-                        <td key={key} className={`border-b border-gray-100 px-2 py-2 text-center ${chinese ? 'bg-blue-50' : ''}`}>
+                        <Table.Cell key={key} className={`text-center ${chinese ? 'bg-blue-50' : ''}`}>
                           <EditableCell
                             value={r ? r.subject : null}
                             type="select"
@@ -76,15 +80,15 @@ export default function ClassTimetable() {
                             onSave={v => saveSubject(wd, Number(slot.id), v)}
                             className={chinese ? 'font-medium text-blue-700' : 'text-slate-700'}
                           />
-                        </td>
+                        </Table.Cell>
                       );
                     })}
-                  </tr>
+                  </Table.Row>
                 );
               })}
-            </tbody>
-          </table>
-        </div>
+            </Table.Body>
+          </Table.Content>
+        </Table.Root>
       )}
       <PeriodSlotsModal open={slotModalOpen} onClose={() => { setSlotModalOpen(false); void slotsReload(); void ttReload(); }} />
     </div>

@@ -115,7 +115,8 @@ export default function DataTable({ columns, rows, loading, label, onSave, pageS
   return (
     <div>
       <Table.Root>
-        <Table.Content aria-label={label} sortDescriptor={sort} onSortChange={(d) => { setSort(d); resetPage(); }}>
+        <Table.ScrollContainer>
+          <Table.Content aria-label={label} sortDescriptor={sort} onSortChange={(d) => { setSort(d); resetPage(); }}>
           <Table.Header columns={renderCols}>
             {(col: ColumnDef & { key: string }) => (
               <Table.Column
@@ -160,6 +161,7 @@ export default function DataTable({ columns, rows, loading, label, onSave, pageS
             )}
           </Table.Body>
         </Table.Content>
+        </Table.ScrollContainer>
       </Table.Root>
       {pageSize && pageCount > 1 && (
         <Pagination.Root size="sm" className="mt-3 flex justify-end">
@@ -201,8 +203,7 @@ function ColumnFilter({ col, value, onChange }: { col: ColumnDef; value: string 
             selectedKey={value ?? ''}
             onSelectionChange={(k) => onChange(col.key, k === null || k === '' ? null : String(k))}
           >
-            <Select.Trigger><Select.Value /></Select.Trigger>
-            <Select.Indicator />
+            <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
             <Select.Popover>
               <ListBox>
                 <ListBox.Item id="">全部</ListBox.Item>

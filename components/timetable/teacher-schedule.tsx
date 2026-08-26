@@ -1,6 +1,6 @@
 'use client';
 import { useMemo, useState } from 'react';
-import { Button, Chip } from '@heroui/react';
+import { Button, Chip, Skeleton, Table } from '@heroui/react';
 import { Plus } from 'lucide-react';
 import DataTable, { type ColumnDef } from '@/components/data-table';
 import TeacherScheduleModal from './teacher-schedule-modal';
@@ -55,40 +55,46 @@ export default function TeacherSchedule() {
           <Plus size={16} /> 新增授课
         </Button>
       </div>
-      <div className="mb-4 overflow-x-auto rounded-xl border border-gray-200 bg-white">
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="bg-gray-50 text-xs text-slate-500">
-              <th className="border-b border-gray-200 px-2 py-2 text-left">时段</th>
-              {WEEKDAYS.map(d => <th key={d} className="border-b border-gray-200 px-2 py-2">{d}</th>)}
-            </tr>
-          </thead>
-          <tbody>
-            {orderedSlots.map(slot => (
-              <tr key={slot.id}>
-                <td className="border-b border-gray-100 px-2 py-2 whitespace-nowrap">
-                  <div className="text-xs text-slate-700">{String(slot.name)}</div>
-                  <div className="text-xs text-slate-400">{String(slot.start_time)}-{String(slot.end_time)}</div>
-                </td>
-                {WEEKDAYS.map((d, idx) => {
-                  const key = `${idx + 1}-${slot.id}`;
-                  const r = overview.get(key);
-                  return (
-                    <td key={key} className="border-b border-gray-100 px-2 py-2 text-center">
-                      {r ? (
-                        <div>
-                          <div className="text-xs text-slate-700">{String(r.class_name)}</div>
-                          <div className="text-xs text-blue-600">{String(r.subject)}</div>
-                        </div>
-                      ) : <span className="text-xs text-slate-300">空闲</span>}
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {(loading || slots.length === 0) ? (
+        <div className="space-y-3">
+          <Skeleton className="h-10 rounded-lg" />
+          <Skeleton className="h-10 rounded-lg" />
+          <Skeleton className="h-10 rounded-lg" />
+        </div>
+      ) : (
+        <Table.Root className="mb-4">
+          <Table.Content aria-label="我的授课网格">
+            <Table.Header>
+              <Table.Column id="period" isRowHeader>时段</Table.Column>
+              {WEEKDAYS.map(d => <Table.Column key={d} id={d}>{d}</Table.Column>)}
+            </Table.Header>
+            <Table.Body>
+              {orderedSlots.map(slot => (
+                <Table.Row key={slot.id} id={(slot.id as number) ?? slot.id}>
+                  <Table.Cell>
+                    <div className="text-xs font-medium text-slate-700">{String(slot.name)}</div>
+                    <div className="text-xs text-slate-400">{String(slot.start_time)}-{String(slot.end_time)}</div>
+                  </Table.Cell>
+                  {WEEKDAYS.map((d, idx) => {
+                    const key = `${idx + 1}-${slot.id}`;
+                    const r = overview.get(key);
+                    return (
+                      <Table.Cell key={key} className="text-center">
+                        {r ? (
+                          <div>
+                            <div className="text-xs text-slate-700">{String(r.class_name)}</div>
+                            <div className="text-xs text-blue-600">{String(r.subject)}</div>
+                          </div>
+                        ) : <span className="text-xs text-slate-400">空闲</span>}
+                      </Table.Cell>
+                    );
+                  })}
+                </Table.Row>
+              ))}
+            </Table.Body>
+          </Table.Content>
+        </Table.Root>
+      )}
       <DataTable
         label="我的授课"
         columns={COLUMNS}

@@ -116,8 +116,7 @@ export default function FormModal({ title, fields, open, onClose, onSubmit, init
                           selectedKey={values[f.key] == null || values[f.key] === '' ? '' : String(values[f.key])}
                           onSelectionChange={(k) => set(f.key, k === null ? '' : String(k))}
                         >
-                          <Select.Trigger><Select.Value /></Select.Trigger>
-                          <Select.Indicator />
+                          <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
                           <Select.Popover>
                             <ListBox>
                               {opts.map(o => <ListBox.Item key={o.value} id={o.value}>{o.label}</ListBox.Item>)}

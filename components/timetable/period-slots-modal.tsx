@@ -60,8 +60,7 @@ export default function PeriodSlotsModal({ open, onClose }: { open: boolean; onC
                     <Input className="w-20" defaultValue={String(slot.start_time)} onBlur={e => void patch(slot.id as number, { start_time: e.target.value })} placeholder="HH:mm" />
                     <Input className="w-20" defaultValue={String(slot.end_time)} onBlur={e => void patch(slot.id as number, { end_time: e.target.value })} placeholder="HH:mm" />
                     <Select aria-label="时段类型" className="w-24" selectedKey={String(slot.kind)} onSelectionChange={k => void patch(slot.id as number, { kind: k === null ? '正课' : String(k) })}>
-                      <Select.Trigger><Select.Value /></Select.Trigger>
-                      <Select.Indicator />
+                      <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
                       <Select.Popover>
                         <ListBox>{KINDS.map(k => <ListBox.Item key={k} id={k}>{k}</ListBox.Item>)}</ListBox>
                       </Select.Popover>

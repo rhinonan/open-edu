@@ -174,8 +174,8 @@ export default function HomePage() {
             <Select aria-label="统计周期" selectedKey={monthsCount} onSelectionChange={k => setMonthsCount(k == null ? 12 : Number(k))}>
               <Select.Trigger className="h-8 min-h-0 px-3 py-1 text-xs font-medium">
                 <Select.Value />
+                <Select.Indicator className="size-3.5" />
               </Select.Trigger>
-              <Select.Indicator className="size-3.5" />
               <Select.Popover>
                 <ListBox>
                   <ListBox.Item id={3}>近 3 月</ListBox.Item>
@@ -204,8 +204,8 @@ export default function HomePage() {
                 <Select aria-label="分组方式" selectedKey={groupMode} onSelectionChange={k => setGroupMode(k === 'level' ? 'level' : 'group')}>
                   <Select.Trigger className="h-8 min-h-0 px-3 py-1 text-xs font-medium">
                     <Select.Value />
+                    <Select.Indicator className="size-3.5" />
                   </Select.Trigger>
-                  <Select.Indicator className="size-3.5" />
                   <Select.Popover>
                     <ListBox>
                       <ListBox.Item id="group">按小组</ListBox.Item>

@@ -56,8 +56,7 @@ export default function GradesPage() {
           selectedKey={currentExam === '' ? '' : currentExam}
           onSelectionChange={k => setExam(k === null || k === '' ? null : String(k))}
         >
-          <Select.Trigger><Select.Value /></Select.Trigger>
-          <Select.Indicator />
+          <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
           <Select.Popover>
             <ListBox>
               {exams.map(e => <ListBox.Item key={e} id={e}>{e || '未命名考试'}</ListBox.Item>)}
