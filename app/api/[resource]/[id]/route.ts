@@ -17,11 +17,11 @@ export async function PUT(req: NextRequest, { params }: Ctx) {
   const db = getDb();
   const user = currentUser(db, req);
   if (!user) return NextResponse.json({ error: '未登录' }, { status: 401 });
-  if (resource === 'period_slots' && user.role !== 'admin') return NextResponse.json({ error: '无权限' }, { status: 403 });
+  if (!user.class_id) return NextResponse.json({ error: '当前账号无关联班级' }, { status: 400 });
   try {
     const body = await req.json();
     if (resource === 'students' && (body as Record<string, unknown>).idcard === '') (body as Record<string, unknown>).idcard = null;
-    const row = update(db, resource, Number(id), body, user.class_id ?? 0);
+    const row = update(db, resource, Number(id), body, user.class_id);
     return NextResponse.json(row);
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 400 });
@@ -34,8 +34,8 @@ export async function DELETE(req: NextRequest, { params }: Ctx) {
   const db = getDb();
   const user = currentUser(db, req);
   if (!user) return NextResponse.json({ error: '未登录' }, { status: 401 });
-  if (resource === 'period_slots' && user.role !== 'admin') return NextResponse.json({ error: '无权限' }, { status: 403 });
-  if (resource === 'period_slots') removePeriodSlot(db, Number(id));
-  else remove(db, resource, Number(id), user.class_id ?? 0);
+  if (!user.class_id) return NextResponse.json({ error: '当前账号无关联班级' }, { status: 400 });
+  if (resource === 'period_slots') removePeriodSlot(db, Number(id), user.class_id);
+  else remove(db, resource, Number(id), user.class_id);
   return NextResponse.json({ ok: true });
 }

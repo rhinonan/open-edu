@@ -16,15 +16,11 @@ const COLUMNS: ColumnDef[] = [
   { key: 'class_id', label: '班级ID', render: (v) => (v === null || v === '' ? '-' : String(v)) },
 ];
 
-const FIELDS: FieldDef[] = [
-  { key: 'username', label: '用户名', required: true },
-  { key: 'name', label: '姓名' },
-  { key: 'password', label: '密码', required: true },
-  { key: 'className', label: '班级名称（留空则不新建班级，需用已有 classId）' },
-];
+type Template = { id: number; name: string }
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
+  const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [deleting, setDeleting] = useState<User | null>(null);
@@ -35,6 +31,23 @@ export default function UsersPage() {
       .finally(() => setLoading(false));
   };
   useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    get<{ templates: Template[] }>('/api/schedule-templates')
+      .then(r => setTemplates(r.templates))
+      .catch(() => { /* 非管理员或未配置时忽略 */ });
+  }, []);
+
+  const fields: FieldDef[] = [
+    { key: 'username', label: '用户名', required: true },
+    { key: 'name', label: '姓名' },
+    { key: 'password', label: '密码', required: true },
+    { key: 'className', label: '班级名称（留空则不新建班级，需用已有 classId）' },
+    {
+      key: 'templateId', label: '作息模板（新建班级时应用）', type: 'select',
+      options: templates.map(t => ({ value: String(t.id), label: t.name })),
+    },
+  ];
 
   const create = async (v: Record<string, string | number | null>) => {
     try {
@@ -78,7 +91,7 @@ export default function UsersPage() {
           </div>
         )}
       />
-      <FormModal title="新增老师账号" fields={FIELDS} open={open} onClose={() => setOpen(false)} onSubmit={create} />
+      <FormModal title="新增老师账号" fields={fields} open={open} onClose={() => setOpen(false)} onSubmit={create} />
       <Confirm open={!!deleting} onOpenChange={(o) => { if (!o) setDeleting(null); }} title="删除账号" message="确认删除该账号？" confirmText="删除" danger onConfirm={remove} />
     </div>
   );

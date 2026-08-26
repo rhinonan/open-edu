@@ -45,3 +45,5 @@ next-env.d.ts
 
 # SDD workspaces (ledgers, briefs, reports)
 /.superpowers/
+students_import_50.csv
+优化.md

@@ -4,6 +4,7 @@ import { Button } from '@heroui/react';
 import DataTable, { type ColumnDef } from '@/components/data-table';
 import TableToolbar, { useColumnVisibility, type ToolbarColumn } from '@/components/table-toolbar';
 import FormModal, { type FieldDef } from '@/components/form-modal';
+import ImportModal, { type ImportResult } from '@/components/import-modal';
 import Confirm from '@/components/confirm';
 import { useResourceRows } from '@/components/use-resource';
 import { parseCsv } from '@/lib/csv';
@@ -59,6 +60,23 @@ const FIELDS: FieldDef[] = [
 
 const to01 = (s: string) => (s === '是' || s === '有' || s === '1' ? 1 : 0);
 
+const IMPORT_PROMPT = `请将我的数据按照示例模板整理成 CSV 表格，具体要求：
+
+1. 表头必须与模板完全一致（一字不差）：
+学号,姓名,性别,家长姓名,家长电话,身份证,住址,学生层次,小组,班干部职务,中午托,早餐,下午托,备注
+2. 学生层次：填 1~6 的数字，没有则填 4
+3. 性别：只能填 男 或 女
+4. 中午托 / 早餐 / 下午托：只能填 是 或 否
+5. 身份证：每行必填，不能留空
+6. 学号、小组：没有可留空
+
+请直接输出整理好的 CSV 内容，不要加任何多余的解释、代码块标记或 Markdown。`;
+
+const IMPORT_TEMPLATE_ROWS: (string | number)[][] = [
+  ['2026001', '张三', '男', '张三丰', '13800000000', '110101199001010011', '北京市海淀区中关村1号', '4', '1', '班长', '是', '否', '是', ''],
+  ['', '李四', '女', '李四娘', '13900000000', '110101199002020022', '北京市朝阳区望京2号', '4', '2', '', '否', '是', '是', ''],
+];
+
 function parseRow(f: Record<string, string>, line: number): { ok: true; row: ImportItem } | { ok: false; message: string } {
   const lv = f['level'] === '' ? 4 : Number(f['level']);
   if (!Number.isInteger(lv) || lv < 1 || lv > 6) return { ok: false, message: '学生层次需为 1-6' };
@@ -75,16 +93,17 @@ function parseRow(f: Record<string, string>, line: number): { ok: true; row: Imp
 }
 
 export default function StudentsPage() {
-  const { rows, loading, update, create, remove } = useResourceRows('students');
+  const { rows, loading, update, create, remove, reload } = useResourceRows('students');
   const { hidden, toggle } = useColumnVisibility('gzt:cols:students', ['address', 'remark']);
   const [addOpen, setAddOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [deleting, setDeleting] = useState<Row | null>(null);
 
   const columns = useMemo(() => COLUMNS.filter(c => !hidden.has(c.key)), [hidden]);
 
-  const onImport = async (text: string) => {
+  const onImport = async (text: string): Promise<ImportResult> => {
     const table = parseCsv(text);
-    if (table.length < 2) { toast.warning('文件为空或只有表头'); return; }
+    if (table.length < 2) throw new Error('文件为空或只有表头');
     const headerIdx = new Map(table[0].map((h, i) => [h.trim(), i]));
     const items: ImportItem[] = [];
     const skipped: { row: number; message: string }[] = [];
@@ -98,12 +117,13 @@ export default function StudentsPage() {
       if (parsed.ok) items.push(parsed.row);
       else skipped.push({ row: idx + 2, message: parsed.message });
     });
-    try {
-      const res = await post<{ created: number; updated: number; skipped: number; errors: { row: number; message: string }[] }>('/api/students/import', { rows: items });
-      const errs = [...res.errors, ...skipped];
-      if (errs.length) toast.warning(`新增 ${res.created} · 更新 ${res.updated} · 跳过 ${res.skipped + skipped.length}（${errs[0].row}行: ${errs[0].message} 等）`);
-      else toast.success(`新增 ${res.created} · 更新 ${res.updated}`);
-    } catch { toast.error('导入失败'); }
+    const res = await post<ImportResult>('/api/students/import', { rows: items });
+    return {
+      created: res.created,
+      updated: res.updated,
+      skipped: res.skipped + skipped.length,
+      errors: [...res.errors, ...skipped],
+    };
   };
 
   const submit = async (v: Record<string, string | number | null>) => {
@@ -113,7 +133,7 @@ export default function StudentsPage() {
 
   return (
     <div>
-      <TableToolbar title="学生管理" columns={TOOLBAR_COLS} hidden={hidden} onToggleColumn={toggle} rows={rows} onAdd={() => setAddOpen(true)} onImport={onImport} />
+      <TableToolbar title="学生管理" columns={TOOLBAR_COLS} hidden={hidden} onToggleColumn={toggle} rows={rows} onAdd={() => setAddOpen(true)} onImport={() => setImportOpen(true)} />
       <DataTable
         label="学生管理"
         columns={columns}
@@ -124,6 +144,17 @@ export default function StudentsPage() {
         actions={(r) => <Button variant="danger-soft" size="sm" onPress={() => setDeleting(r)}>删除</Button>}
       />
       <FormModal title="新增学生" fields={FIELDS} open={addOpen} onClose={() => setAddOpen(false)} onSubmit={submit} />
+      <ImportModal
+        title="学生导入"
+        prompt={IMPORT_PROMPT}
+        templateFilename="学生导入示例模板.csv"
+        templateHeaders={TOOLBAR_COLS.map(c => c.label)}
+        templateRows={IMPORT_TEMPLATE_ROWS}
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onImport={onImport}
+        onSuccess={() => void reload()}
+      />
       <Confirm
         open={!!deleting}
         onOpenChange={(o) => { if (!o) setDeleting(null); }}

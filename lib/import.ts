@@ -8,6 +8,10 @@ export interface ImportItem {
 
 export interface ImportResult { created: number; updated: number; skipped: number; errors: { row: number; message: string }[] }
 
+export interface ImportGradeItem {
+  line: number; exam_name: string; subject: string; student_name: string; score: number;
+}
+
 const UPDATE_SQL = `UPDATE students SET
   student_no = CASE WHEN @student_no = '' THEN student_no ELSE @student_no END, name = @name, gender = @gender, parent_name = @parent_name,
   parent_phone = @parent_phone, address = @address, level = @level, group_no = @group_no,
@@ -33,6 +37,32 @@ export function importStudents(db: DatabaseSync, classId: number, rows: ImportIt
         if (!fields.student_no) fields.student_no = String((nextNo.get(classId) as { next: number }).next).padStart(2, '0');
         ins.run({ ...fields, classId }); result.created++;
       }
+    }
+    db.exec('COMMIT');
+  } catch (e) {
+    db.exec('ROLLBACK');
+    throw e;
+  }
+  return result;
+}
+
+const GRADE_UPDATE_SQL = `UPDATE grades SET score = @score WHERE class_id = @classId AND exam_name = @exam_name AND subject = @subject AND student_name = @student_name`;
+
+const GRADE_INSERT_SQL = `INSERT INTO grades (class_id, exam_name, subject, student_name, score)
+  VALUES (@classId, @exam_name, @subject, @student_name, @score)`;
+
+export function importGrades(db: DatabaseSync, classId: number, rows: ImportGradeItem[]): ImportResult {
+  const result: ImportResult = { created: 0, updated: 0, skipped: 0, errors: [] };
+  const find = db.prepare('SELECT id FROM grades WHERE class_id = ? AND exam_name = ? AND subject = ? AND student_name = ?');
+  const upd = db.prepare(GRADE_UPDATE_SQL);
+  const ins = db.prepare(GRADE_INSERT_SQL);
+  db.exec('BEGIN');
+  try {
+    for (const r of rows) {
+      if (!r.student_name) { result.skipped++; result.errors.push({ row: r.line, message: '缺少学生姓名' }); continue; }
+      const { line: _line, ...fields } = r; // 'line' 仅用于统计
+      if (find.get(classId, r.exam_name, r.subject, r.student_name)) { upd.run({ ...fields, classId }); result.updated++; }
+      else { ins.run({ ...fields, classId }); result.created++; }
     }
     db.exec('COMMIT');
   } catch (e) {

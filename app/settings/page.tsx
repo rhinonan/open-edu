@@ -4,6 +4,7 @@ import { Button, Input, Label } from '@heroui/react';
 import Confirm from '@/components/confirm';
 import { get, post, put } from '@/lib/api-client';
 import { toast } from '@/lib/toast';
+import ScheduleTemplatesManager from '@/components/schedule-templates-manager';
 import type { Row } from '@/lib/types';
 
 interface Me { user: { name: string; role: string; class_id: number | null }; class: { id: number; name: string; head_teacher: string; grade_band: string } | null }
@@ -52,6 +53,7 @@ export default function SettingsPage() {
         </div>
         {(isAdmin || me?.user?.class_id) && (
           <div className="space-y-4">
+            {isAdmin && <ScheduleTemplatesManager />}
             <div className="rounded-xl bg-white p-4">
               <h3 className="mb-3 text-sm font-semibold text-slate-600">数据维护</h3>
               <div className="flex flex-col gap-2">

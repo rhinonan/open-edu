@@ -17,7 +17,7 @@ describe('schema', () => {
     const tables = (db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all() as { name: string }[]).map(t => t.name);
     expect(tables).toEqual(expect.arrayContaining([
       'classes', 'users', 'sessions', 'students', 'classroom_config', 'leave_records', 'discipline_records',
-      'grades', 'timetable', 'period_slots', 'teacher_schedule', 'todos', 'conversations',
+      'grades', 'timetable', 'period_slots', 'schedule_templates', 'teacher_schedule', 'todos', 'conversations',
       'home_visits', 'evaluation', 'parent_comm', 'safety_logs',
       'work_logs', 'seats',
     ]));
@@ -44,6 +44,16 @@ describe('seedClass', () => {
     seedClass(db, Number(cid2));
     const r = (db.prepare('SELECT class_id, COUNT(*) AS n FROM students GROUP BY class_id ORDER BY class_id').all() as { class_id: number; n: number }[]);
     expect(r).toEqual([{ class_id: 1, n: 45 }, { class_id: 2, n: 45 }]);
+  });
+
+  it('每班各自有 11 个时段，彼此隔离', () => {
+    const { db } = makeDb();
+    const { lastInsertRowid: cid2 } = db.prepare(`INSERT INTO classes (name, head_teacher, grade_band) VALUES ('六年级（2）班', '李老师', '六年级')`).run();
+    seedClass(db, Number(cid2));
+    const per = (db.prepare('SELECT class_id, COUNT(*) AS n FROM period_slots GROUP BY class_id').all() as { class_id: number; n: number }[]);
+    expect(per).toEqual([{ class_id: 1, n: 11 }, { class_id: 2, n: 11 }]);
+    const all = (db.prepare('SELECT COUNT(*) AS n FROM period_slots').get() as { n: number }).n;
+    expect(all).toBe(22);
   });
 
   it('包含 classroom_config 与课表', () => {

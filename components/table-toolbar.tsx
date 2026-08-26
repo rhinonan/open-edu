@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button, Checkbox, Popover } from '@heroui/react';
 import { Columns3, Download, Plus, Upload } from 'lucide-react';
 import type { Row } from '@/lib/types';
@@ -35,21 +35,15 @@ interface Props {
   onToggleColumn: (key: string) => void;
   rows: Row[];
   onAdd?: () => void;
-  onImport?: (text: string) => Promise<void>;
+  onImport?: () => void;
 }
 
 export default function TableToolbar({ title, columns, hidden, onToggleColumn, rows, onAdd, onImport }: Props) {
-  const fileRef = useRef<HTMLInputElement | null>(null);
   const [colOpen, setColOpen] = useState(false);
 
   const exportable = columns.filter(c => (c.exportable ?? true) && !hidden.has(c.key));
   const exportCsv = () => {
     downloadCsv(`${title}.csv`, exportable.map(c => c.label), rows.map(r => exportable.map(c => r[c.key] ?? '')));
-  };
-  const handleFile = (f: File) => {
-    const reader = new FileReader();
-    reader.onload = () => { void onImport!(String(reader.result ?? '')); };
-    reader.readAsText(f);
   };
 
   return (
@@ -57,18 +51,9 @@ export default function TableToolbar({ title, columns, hidden, onToggleColumn, r
       <h2 className="m-0 text-lg font-semibold text-slate-800">{title}</h2>
       <div className="flex flex-wrap items-center gap-2">
         {onImport && (
-          <>
-            <input
-              ref={fileRef}
-              type="file"
-              accept=".csv"
-              className="hidden"
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ''; }}
-            />
-            <Button variant="outline" size="sm" onPress={() => fileRef.current?.click()}>
-              <Upload size={16} /> 导入
-            </Button>
-          </>
+          <Button variant="outline" size="sm" onPress={onImport}>
+            <Upload size={16} /> 导入
+          </Button>
         )}
         <Button variant="outline" size="sm" onPress={exportCsv}>
           <Download size={16} /> 导出

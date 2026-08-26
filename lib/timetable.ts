@@ -24,13 +24,13 @@ export function classStats(slots: Row[], rows: Row[]): { total: number; chinese:
   };
 }
 
-/** 删除时段并级联删除其下 timetable 与 teacher_schedule 行 */
-export function removePeriodSlot(db: DatabaseSync, id: number): void {
+/** 删除本班时段并级联删除该班其下 timetable 与 teacher_schedule 行 */
+export function removePeriodSlot(db: DatabaseSync, id: number, classId: number): void {
   db.exec('BEGIN');
   try {
-    db.prepare('DELETE FROM timetable WHERE period_id = ?').run(id);
-    db.prepare('DELETE FROM teacher_schedule WHERE period_id = ?').run(id);
-    db.prepare('DELETE FROM period_slots WHERE id = ?').run(id);
+    db.prepare('DELETE FROM timetable WHERE period_id = ? AND class_id = ?').run(id, classId);
+    db.prepare('DELETE FROM teacher_schedule WHERE period_id = ? AND class_id = ?').run(id, classId);
+    db.prepare('DELETE FROM period_slots WHERE id = ? AND class_id = ?').run(id, classId);
     db.exec('COMMIT');
   } catch (e) {
     db.exec('ROLLBACK');

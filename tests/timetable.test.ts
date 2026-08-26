@@ -103,10 +103,10 @@ describe('纯函数', () => {
     const n = (sql: string, ...params: (string | number)[]) => (db.prepare(sql).get(...params) as { n: number }).n;
     expect(n('SELECT COUNT(*) AS n FROM timetable WHERE class_id = ? AND period_id = ?', classId, Number(zheng.id))).toBe(5);
     expect(n('SELECT COUNT(*) AS n FROM teacher_schedule WHERE class_id = ? AND period_id = ?', classId, Number(zheng.id))).toBe(1);
-    removePeriodSlot(db, Number(zheng.id));
-    expect(n('SELECT COUNT(*) AS n FROM timetable WHERE period_id = ?', Number(zheng.id))).toBe(0);
-    expect(n('SELECT COUNT(*) AS n FROM teacher_schedule WHERE period_id = ?', Number(zheng.id))).toBe(0);
-    expect(n('SELECT COUNT(*) AS n FROM period_slots WHERE id = ?', Number(zheng.id))).toBe(0);
-    expect((db.prepare('SELECT COUNT(*) AS n FROM period_slots').get() as { n: number }).n).toBe(10);
+    removePeriodSlot(db, Number(zheng.id), classId);
+    expect(n('SELECT COUNT(*) AS n FROM timetable WHERE period_id = ? AND class_id = ?', Number(zheng.id), classId)).toBe(0);
+    expect(n('SELECT COUNT(*) AS n FROM teacher_schedule WHERE period_id = ? AND class_id = ?', Number(zheng.id), classId)).toBe(0);
+    expect(n('SELECT COUNT(*) AS n FROM period_slots WHERE id = ? AND class_id = ?', Number(zheng.id), classId)).toBe(0);
+    expect((db.prepare('SELECT COUNT(*) AS n FROM period_slots WHERE class_id = ?').get(classId) as { n: number }).n).toBe(10);
   });
 });

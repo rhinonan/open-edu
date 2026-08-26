@@ -3,7 +3,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { SCHEMA_SQL } from '../lib/schema';
 import { seedClass } from '../lib/seed';
 import { list, create } from '../lib/store';
-import { importStudents, type ImportItem } from '../lib/import';
+import { importStudents, importGrades, type ImportItem, type ImportGradeItem } from '../lib/import';
 
 function makeDb() {
   const db = new DatabaseSync(':memory:');
@@ -73,5 +73,48 @@ describe('importStudents', () => {
     expect(r.created).toBe(1);
     const row = list(db, 'students', classId).find(x => x.idcard === '430102199001020022');
     expect(row?.student_no).toBe('46');
+  });
+});
+
+const gItem = (p: Partial<ImportGradeItem>): ImportGradeItem => ({
+  line: 2, exam_name: '期中考试', subject: '语文', student_name: '王小明', score: 90, ...p,
+});
+
+describe('importGrades', () => {
+  it('新考试新记录 → INSERT', () => {
+    const { db, classId } = makeDb();
+    const r = importGrades(db, classId, [gItem({})]);
+    expect(r.created).toBe(1);
+    expect(r.updated).toBe(0);
+    expect(list(db, 'grades', classId).some(x => x.exam_name === '期中考试' && x.subject === '语文' && x.student_name === '王小明' && x.score === 90)).toBe(true);
+  });
+
+  it('同考试同科目同学生 → 覆盖分数且不新增', () => {
+    const { db, classId } = makeDb();
+    const before = list(db, 'grades', classId);
+    const first = before[0]!;
+    const r = importGrades(db, classId, [gItem({ exam_name: String(first.exam_name), subject: String(first.subject), student_name: String(first.student_name), score: 55 })]);
+    expect(r.updated).toBe(1);
+    expect(r.created).toBe(0);
+    expect(list(db, 'grades', classId).length).toBe(before.length);
+    expect(list(db, 'grades', classId)[0].score).toBe(55);
+  });
+
+  it('缺少学生姓名 → 跳过并带行号', () => {
+    const { db, classId } = makeDb();
+    const before = list(db, 'grades', classId).length;
+    const r = importGrades(db, classId, [gItem({ line: 3, student_name: '' })]);
+    expect(r.skipped).toBe(1);
+    expect(r.errors).toEqual([{ row: 3, message: '缺少学生姓名' }]);
+    expect(list(db, 'grades', classId).length).toBe(before);
+  });
+
+  it('同批两条相同记录 → 一条 insert 一条 update', () => {
+    const { db, classId } = makeDb();
+    const r = importGrades(db, classId, [gItem({ score: 70 }), gItem({ score: 80 })]);
+    expect(r.created).toBe(1);
+    expect(r.updated).toBe(1);
+    const row = list(db, 'grades', classId).find(x => x.exam_name === '期中考试' && x.subject === '语文' && x.student_name === '王小明');
+    expect(row?.score).toBe(80);
   });
 });

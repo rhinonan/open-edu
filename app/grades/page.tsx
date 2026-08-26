@@ -1,16 +1,56 @@
 'use client';
 import { useMemo, useState } from 'react';
-import { ListBox, Select, Skeleton, ToggleButton, ToggleButtonGroup } from '@heroui/react';
+import { Button, ListBox, Select, Skeleton, ToggleButton, ToggleButtonGroup } from '@heroui/react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Upload } from 'lucide-react';
+import ImportModal, { type ImportResult } from '@/components/import-modal';
 import StatCard from '@/components/stat-card';
 import EditableCell from '@/components/editable-cell';
 import { useResourceRows } from '@/components/use-resource';
 import { CategoryColor } from '@/lib/color-utils';
+import { parseCsv } from '@/lib/csv';
+import { post } from '@/lib/api-client';
+import type { ImportGradeItem } from '@/lib/import';
 
 const SUBJECTS = ['语文', '数学', '英语'];
 
+const IMPORT_COLS = [
+  { key: 'exam_name', label: '考试' },
+  { key: 'subject', label: '科目' },
+  { key: 'student_name', label: '学生姓名' },
+  { key: 'score', label: '分数' },
+];
+
+const IMPORT_PROMPT = `请将我的数据按照示例模板整理成 CSV 表格，具体要求：
+
+1. 表头必须与模板完全一致（一字不差）：
+考试,科目,学生姓名,分数
+2. 科目：只能填 语文、数学 或 英语
+3. 分数：填 0~100 之间的数字
+4. 学生姓名：每行必填，不能留空
+5. 考试：同一批数据保持同一个考试名称（没有则填 期中考试）
+
+请直接输出整理好的 CSV 内容，不要加任何多余的解释、代码块标记或 Markdown。`;
+
+const IMPORT_TEMPLATE_ROWS: (string | number)[][] = [
+  ['期中考试', '语文', '张三', '95'],
+  ['期中考试', '数学', '李四', '88'],
+];
+
+function parseGradeRow(f: Record<string, string>, line: number): { ok: true; row: ImportGradeItem } | { ok: false; message: string } {
+  const score = Number(f['score']);
+  if (!f['student_name']) return { ok: false, message: '缺少学生姓名' };
+  if (!SUBJECTS.includes(f['subject'])) return { ok: false, message: '科目需为语文/数学/英语' };
+  if (!Number.isFinite(score) || score < 0 || score > 100) return { ok: false, message: '分数需为 0-100 的数字' };
+  return {
+    ok: true,
+    row: { line, exam_name: f['exam_name'] ?? '', subject: f['subject'], student_name: f['student_name'], score },
+  };
+}
+
 export default function GradesPage() {
-  const { rows, loading, update } = useResourceRows('grades');
+  const { rows, loading, update, reload } = useResourceRows('grades');
+  const [importOpen, setImportOpen] = useState(false);
   const [exam, setExam] = useState<string | null>(null);
   const [subject, setSubject] = useState<string>('语文');
 
@@ -45,9 +85,41 @@ export default function GradesPage() {
     return bins.map(b => ({ name: b.label, 人数: current.filter(r => { const s = Number(r.score); return s >= b.min && s <= b.max; }).length }));
   }, [current]);
 
+  const onImport = async (text: string): Promise<ImportResult> => {
+    const table = parseCsv(text);
+    if (table.length < 2) throw new Error('文件为空或只有表头');
+    const headerIdx = new Map(table[0].map((h, i) => [h.trim(), i]));
+    const items: ImportGradeItem[] = [];
+    const localErrors: { row: number; message: string }[] = [];
+    table.slice(1).forEach((row, idx) => {
+      if (row.length === 1 && row[0].trim() === '') return; // 跳过空行
+      const fields: Record<string, string> = {};
+      IMPORT_COLS.forEach(col => {
+        const i = headerIdx.get(col.label);
+        fields[col.key] = i === undefined ? '' : (row[i] ?? '').trim();
+      });
+      const parsed = parseGradeRow(fields, idx + 2);
+      if (parsed.ok) items.push(parsed.row);
+      else localErrors.push({ row: idx + 2, message: parsed.message });
+    });
+    if (items.length === 0) throw new Error('没有可导入的有效数据');
+    const res = await post<ImportResult>('/api/grades/import', { rows: items });
+    return {
+      created: res.created,
+      updated: res.updated,
+      skipped: res.skipped + localErrors.length,
+      errors: [...res.errors, ...localErrors],
+    };
+  };
+
   return (
     <div>
-      <h2 className="mb-4 text-lg font-semibold text-slate-800">成绩分析</h2>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="m-0 text-lg font-semibold text-slate-800">成绩分析</h2>
+        <Button variant="outline" size="sm" onPress={() => setImportOpen(true)}>
+          <Upload size={16} /> 导入
+        </Button>
+      </div>
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <Select
           aria-label="选择考试"
@@ -111,6 +183,17 @@ export default function GradesPage() {
           </div>
         </>
       )}
+      <ImportModal
+        title="成绩导入"
+        prompt={IMPORT_PROMPT}
+        templateFilename="成绩导入示例模板.csv"
+        templateHeaders={IMPORT_COLS.map(c => c.label)}
+        templateRows={IMPORT_TEMPLATE_ROWS}
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onImport={onImport}
+        onSuccess={() => void reload()}
+      />
     </div>
   );
 }
