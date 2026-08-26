@@ -16,6 +16,7 @@ export default function TeacherSchedule() {
   const { rows: slots } = useResourceRows('period_slots');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Row | null>(null);
+  const [cellPrefill, setCellPrefill] = useState<{ weekday: number; period_id: number } | null>(null);
   const [deleting, setDeleting] = useState<Row | null>(null);
 
   const slotById = useMemo(() => new Map(slots.map(s => [Number(s.id), s])), [slots]);
@@ -51,7 +52,7 @@ export default function TeacherSchedule() {
     <div>
       <div className="mb-3 flex items-center justify-between">
         <h3 className="m-0 text-base font-semibold text-slate-800">我的授课</h3>
-        <Button variant="primary" size="sm" onPress={() => { setEditing(null); setModalOpen(true); }}>
+        <Button variant="primary" size="sm" onPress={() => { setEditing(null); setCellPrefill(null); setModalOpen(true); }}>
           <Plus size={16} /> 新增授课
         </Button>
       </div>
@@ -79,13 +80,21 @@ export default function TeacherSchedule() {
                     const key = `${idx + 1}-${slot.id}`;
                     const r = overview.get(key);
                     return (
-                      <Table.Cell key={key} className="text-center">
+                      <Table.Cell
+                        key={key}
+                        className="cursor-pointer text-left transition-colors hover:bg-gray-50"
+                        onClick={() => {
+                          if (r) { setEditing(r); setCellPrefill(null); }
+                          else { setEditing(null); setCellPrefill({ weekday: idx + 1, period_id: Number(slot.id) }); }
+                          setModalOpen(true);
+                        }}
+                      >
                         {r ? (
-                          <div>
+                          <div className="px-1">
                             <div className="text-xs text-slate-700">{String(r.class_name)}</div>
                             <div className="text-xs text-blue-600">{String(r.subject)}</div>
                           </div>
-                        ) : <span className="text-xs text-slate-400">空闲</span>}
+                        ) : <span className="px-1 text-xs text-slate-400">空闲</span>}
                       </Table.Cell>
                     );
                   })}
@@ -102,12 +111,12 @@ export default function TeacherSchedule() {
         loading={loading}
         actions={(r) => (
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onPress={() => { setEditing(r); setModalOpen(true); }}>编辑</Button>
+            <Button variant="outline" size="sm" onPress={() => { setEditing(r); setCellPrefill(null); setModalOpen(true); }}>编辑</Button>
             <Button variant="danger-soft" size="sm" onPress={() => setDeleting(r)}>删除</Button>
           </div>
         )}
       />
-      <TeacherScheduleModal open={modalOpen} onClose={() => setModalOpen(false)} editing={editing} slots={slots} onSave={onSave} />
+      <TeacherScheduleModal open={modalOpen} onClose={() => setModalOpen(false)} editing={editing} slots={slots} onSave={onSave} prefill={cellPrefill} />
       <Confirm open={!!deleting} onOpenChange={(o) => { if (!o) setDeleting(null); }} title="删除记录" message="确定删除该记录？" confirmText="删除" danger
         onConfirm={async () => { if (!deleting) return; try { await remove(deleting.id as number); toast.success('已删除'); } catch { toast.error('删除失败'); } setDeleting(null); }} />
     </div>

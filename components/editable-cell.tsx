@@ -37,7 +37,7 @@ export default function EditableCell({ value, type = 'text', options, nullOnEmpt
         onClick={() => { if (editable) { setDraft(String(value ?? '')); setEditing(true); } }}
       >
         {display}
-        {editable && <Pencil size={11} className="ml-1 inline text-slate-400 opacity-0 transition-opacity group-hover:opacity-100" aria-hidden />}
+        {editable && <Pencil size={11} className="ml-5 inline cursor-pointer text-slate-400 opacity-0 transition-opacity group-hover:opacity-100" aria-hidden />}
       </span>
     );
   }

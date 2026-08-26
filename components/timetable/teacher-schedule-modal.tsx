@@ -8,12 +8,13 @@ const SUBJECT_OPTIONS = ['语文', '数学', '英语', '科学', '道德与法�
 
 type Values = { weekday: number; period_id: number; class_name: string; subject: string; remark: string };
 
-export default function TeacherScheduleModal({ open, onClose, editing, slots, onSave }: {
+export default function TeacherScheduleModal({ open, onClose, editing, slots, onSave, prefill }: {
   open: boolean;
   onClose: () => void;
   editing: Row | null;
   slots: Row[];
   onSave: (v: Values) => Promise<void>;
+  prefill?: { weekday: number; period_id: number } | null;
 }) {
   const fields = useMemo<FieldDef[]>(() => [
     { key: 'weekday', label: '星期', type: 'select', required: true, options: WEEKDAYS.map((w, i) => ({ value: String(i + 1), label: w })) },
@@ -32,7 +33,7 @@ export default function TeacherScheduleModal({ open, onClose, editing, slots, on
     class_name: String(editing.class_name ?? ''),
     subject: String(editing.subject ?? ''),
     remark: String(editing.remark ?? ''),
-  } : { weekday: '1' };
+  } : { weekday: String(prefill?.weekday ?? 1), period_id: String(prefill?.period_id ?? '') };
 
   const submit = async (v: Record<string, string | number | null>) => {
     await onSave({

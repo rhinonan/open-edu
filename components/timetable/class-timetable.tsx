@@ -68,11 +68,11 @@ export default function ClassTimetable() {
                       const key = `${wd}-${slot.id}`;
                       const r = grid.get(key);
                       if (!isSubject) {
-                        return <Table.Cell key={key} className="text-center"><span className="text-xs text-slate-400">{KIND_LABELS[String(slot.kind)]}</span></Table.Cell>;
+                        return <Table.Cell key={key} className="text-left"><span className="px-1 text-xs text-slate-400">{KIND_LABELS[String(slot.kind)]}</span></Table.Cell>;
                       }
                       const chinese = r && r.is_chinese == 1;
                       return (
-                        <Table.Cell key={key} className={`text-center ${chinese ? 'bg-blue-50' : ''}`}>
+                        <Table.Cell key={key} className={`text-left ${chinese ? 'bg-blue-50' : ''}`}>
                           <EditableCell
                             value={r ? r.subject : null}
                             type="select"
