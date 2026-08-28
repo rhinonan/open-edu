@@ -15,7 +15,11 @@ export interface ColumnDef {
   type?: CellType;
   options?: string[];
   nullOnEmpty?: boolean;
-  width?: number | string;
+  /** Minimum width (px) for this column's header and cells, so short text
+   *  keeps one line and cells don't get squeezed on narrow screens. */
+  minWidth?: number;
+  /** Keep cell content on a single line (white-space: nowrap). */
+  noWrap?: boolean;
   sortable?: boolean;
   sortValue?: (row: Row) => string | number | null;
   filterOptions?: string[];
@@ -32,14 +36,14 @@ export interface DataTableProps {
   pageSize?: number;
   actions?: (row: Row) => ReactNode;
   emptyText?: string;
+  /** Minimum width (px) of the <table>. Keeps cells from being squeezed on narrow
+   *  screens — the scroll container then scrolls horizontally instead. */
+  minWidth?: number;
 }
 
 // SortDescriptor requires both `column` and `direction`; an empty string column with
 // `ascending` is the "not sorted" sentinel (no real column has key `''`).
 const NO_SORT: SortDescriptor = { column: '', direction: 'ascending' };
-
-// RAC Table.Column `width` only accepts number | `${number}` | `${number}%` | `${number}fr`.
-type RacColumnWidth = number | `${number}` | `${number}%` | `${number}fr`;
 
 const compare = (a: string | number | null, b: string | number | null, dir: 'ascending' | 'descending'): number => {
   const na = Number(a); const nb = Number(b);
@@ -50,7 +54,7 @@ const compare = (a: string | number | null, b: string | number | null, dir: 'asc
 
 const fmtCell = (v: unknown): string => (v === null || v === '' ? '—' : String(v));
 
-export default function DataTable({ columns, rows, loading, label, onSave, pageSize, actions, emptyText }: DataTableProps) {
+export default function DataTable({ columns, rows, loading, label, onSave, pageSize, actions, emptyText, minWidth }: DataTableProps) {
   const [sort, setSort] = useState<SortDescriptor>(NO_SORT);
   const [filters, setFilters] = useState<Record<string, string | null>>({});
   const [page, setPage] = useState(1);
@@ -116,7 +120,7 @@ export default function DataTable({ columns, rows, loading, label, onSave, pageS
     <div>
       <Table.Root>
         <Table.ScrollContainer>
-          <Table.Content aria-label={label} sortDescriptor={sort} onSortChange={(d) => { setSort(d); resetPage(); }}>
+          <Table.Content aria-label={label} sortDescriptor={sort} onSortChange={(d) => { setSort(d); resetPage(); }} style={minWidth ? { minWidth } : undefined}>
           <Table.Header columns={renderCols}>
             {(col: ColumnDef & { key: string }) => (
               <Table.Column
@@ -124,7 +128,7 @@ export default function DataTable({ columns, rows, loading, label, onSave, pageS
                 id={col.key}
                 allowsSorting={col.sortable}
                 isRowHeader={col.key === renderCols[0]?.key}
-                width={col.width as RacColumnWidth}
+                style={{ minWidth: col.minWidth }}
               >
                 {({ sortDirection }: { sortDirection?: 'ascending' | 'descending' }) => (
                   <div className="flex items-center gap-1.5">
@@ -152,7 +156,11 @@ export default function DataTable({ columns, rows, loading, label, onSave, pageS
                 {renderCols.map(col => (
                   <Table.Cell
                     key={col.key}
-                    className={col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'}
+                    className={[
+                      col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left',
+                      col.noWrap ? 'whitespace-nowrap' : '',
+                    ].filter(Boolean).join(' ')}
+                    style={{ minWidth: col.minWidth }}
                   >
                     {cell(col, item)}
                   </Table.Cell>

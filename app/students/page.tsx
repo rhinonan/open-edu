@@ -12,6 +12,7 @@ import { post } from '@/lib/api-client';
 import { toast } from '@/lib/toast';
 import type { ImportItem } from '@/lib/import';
 import type { Row } from '@/lib/types';
+import SensitiveValue from '@/components/sensitive-value';
 
 const LEVELS = ['1', '2', '3', '4', '5', '6'];
 const TOOLBAR_COLS: ToolbarColumn[] = [
@@ -19,26 +20,25 @@ const TOOLBAR_COLS: ToolbarColumn[] = [
   { key: 'gender', label: '性别' }, { key: 'parent_name', label: '家长姓名' },
   { key: 'parent_phone', label: '家长电话' }, { key: 'idcard', label: '身份证' },
   { key: 'address', label: '住址' }, { key: 'level', label: '学生层次' },
-  { key: 'group_no', label: '小组' }, { key: 'role', label: '班干部职务' },
+  { key: 'role', label: '班干部职务' },
   { key: 'noon_care', label: '中午托' }, { key: 'breakfast', label: '早餐' },
   { key: 'afternoon_care', label: '下午托' }, { key: 'remark', label: '备注' },
 ];
 
 const COLUMNS: ColumnDef[] = [
-  { key: 'student_no', label: '学号', type: 'text', sortable: true, sortValue: r => Number(r.student_no) || 0 },
-  { key: 'name', label: '姓名', type: 'text' },
-  { key: 'gender', label: '性别', type: 'select', options: ['男', '女'], filterOptions: ['男', '女'] },
-  { key: 'parent_name', label: '家长姓名', type: 'text' },
-  { key: 'parent_phone', label: '家长电话', type: 'tel' },
-  { key: 'idcard', label: '身份证', type: 'text', nullOnEmpty: true },
-  { key: 'address', label: '住址', type: 'text', width: 180 },
-  { key: 'level', label: '学生层次', type: 'select', options: LEVELS, filterOptions: LEVELS },
-  { key: 'group_no', label: '小组', type: 'text' },
-  { key: 'role', label: '班干部职务', type: 'text' },
-  { key: 'noon_care', label: '中午托', type: 'select', options: ['1', '0'] },
-  { key: 'breakfast', label: '早餐', type: 'select', options: ['1', '0'] },
-  { key: 'afternoon_care', label: '下午托', type: 'select', options: ['1', '0'], filterOptions: ['1', '0'] },
-  { key: 'remark', label: '备注', type: 'textarea' },
+  { key: 'student_no', label: '学号', type: 'text', sortable: true, sortValue: r => Number(r.student_no) || 0, minWidth: 76, noWrap: true },
+  { key: 'name', label: '姓名', type: 'text', minWidth: 84, noWrap: true },
+  { key: 'gender', label: '性别', type: 'select', options: ['男', '女'], filterOptions: ['男', '女'], minWidth: 84, noWrap: true },
+  { key: 'parent_name', label: '家长姓名', type: 'text', minWidth: 100, noWrap: true },
+  { key: 'parent_phone', label: '家长电话', minWidth: 148, noWrap: true, render: v => <SensitiveValue value={v} kind="phone" /> },
+  { key: 'idcard', label: '身份证', minWidth: 200, noWrap: true, render: v => <SensitiveValue value={v} kind="idcard" /> },
+  { key: 'address', label: '住址', type: 'text', minWidth: 160 },
+  { key: 'level', label: '学生层次', type: 'select', options: LEVELS, filterOptions: LEVELS, minWidth: 112, noWrap: true },
+  { key: 'role', label: '班干部职务', type: 'text', minWidth: 104, noWrap: true },
+  { key: 'noon_care', label: '中午托', type: 'select', options: ['1', '0'], minWidth: 72, noWrap: true },
+  { key: 'breakfast', label: '早餐', type: 'select', options: ['1', '0'], minWidth: 60, noWrap: true },
+  { key: 'afternoon_care', label: '下午托', type: 'select', options: ['1', '0'], filterOptions: ['1', '0'], minWidth: 100, noWrap: true },
+  { key: 'remark', label: '备注', type: 'textarea', minWidth: 160 },
 ];
 
 const FIELDS: FieldDef[] = [
@@ -63,18 +63,18 @@ const to01 = (s: string) => (s === '是' || s === '有' || s === '1' ? 1 : 0);
 const IMPORT_PROMPT = `请将我的数据按照示例模板整理成 CSV 表格，具体要求：
 
 1. 表头必须与模板完全一致（一字不差）：
-学号,姓名,性别,家长姓名,家长电话,身份证,住址,学生层次,小组,班干部职务,中午托,早餐,下午托,备注
+学号,姓名,性别,家长姓名,家长电话,身份证,住址,学生层次,班干部职务,中午托,早餐,下午托,备注
 2. 学生层次：填 1~6 的数字，没有则填 4
 3. 性别：只能填 男 或 女
 4. 中午托 / 早餐 / 下午托：只能填 是 或 否
 5. 身份证：每行必填，不能留空
-6. 学号、小组：没有可留空
+6. 学号：没有可留空
 
 请直接输出整理好的 CSV 内容，不要加任何多余的解释、代码块标记或 Markdown。`;
 
 const IMPORT_TEMPLATE_ROWS: (string | number)[][] = [
-  ['2026001', '张三', '男', '张三丰', '13800000000', '110101199001010011', '北京市海淀区中关村1号', '4', '1', '班长', '是', '否', '是', ''],
-  ['', '李四', '女', '李四娘', '13900000000', '110101199002020022', '北京市朝阳区望京2号', '4', '2', '', '否', '是', '是', ''],
+  ['2026001', '张三', '男', '张三丰', '13800000000', '110101199001010011', '北京市海淀区中关村1号', '4', '班长', '是', '否', '是', ''],
+  ['', '李四', '女', '李四娘', '13900000000', '110101199002020022', '北京市朝阳区望京2号', '4', '', '否', '是', '是', ''],
 ];
 
 function parseRow(f: Record<string, string>, line: number): { ok: true; row: ImportItem } | { ok: false; message: string } {
