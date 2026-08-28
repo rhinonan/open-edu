@@ -206,8 +206,8 @@ function ColumnFilter({ col, value, onChange }: { col: ColumnDef; value: string 
             <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
             <Select.Popover>
               <ListBox>
-                <ListBox.Item id="">全部</ListBox.Item>
-                {(col.filterOptions ?? []).map(o => <ListBox.Item key={o} id={o}>{o}</ListBox.Item>)}
+                <ListBox.Item id="" textValue="全部">全部</ListBox.Item>
+                {(col.filterOptions ?? []).map(o => <ListBox.Item key={o} id={o} textValue={o}>{o}</ListBox.Item>)}
               </ListBox>
             </Select.Popover>
           </Select>

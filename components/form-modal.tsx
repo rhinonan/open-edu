@@ -119,7 +119,7 @@ export default function FormModal({ title, fields, open, onClose, onSubmit, init
                           <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
                           <Select.Popover>
                             <ListBox>
-                              {opts.map(o => <ListBox.Item key={o.value} id={o.value}>{o.label}</ListBox.Item>)}
+                              {opts.map(o => <ListBox.Item key={o.value} id={o.value} textValue={o.label}>{o.label}</ListBox.Item>)}
                             </ListBox>
                           </Select.Popover>
                         </Select>

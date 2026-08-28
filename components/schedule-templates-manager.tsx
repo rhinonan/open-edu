@@ -130,7 +130,7 @@ export default function ScheduleTemplatesManager() {
                           <Select aria-label="时段类型" className="w-24" selectedKey={s.kind} onSelectionChange={k => patchSlot(i, { kind: k === null ? '正课' : String(k) })}>
                             <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
                             <Select.Popover>
-                              <ListBox>{SLOT_KINDS.map(k => <ListBox.Item key={k} id={k}>{k}</ListBox.Item>)}</ListBox>
+                              <ListBox>{SLOT_KINDS.map(k => <ListBox.Item key={k} id={k} textValue={k}>{k}</ListBox.Item>)}</ListBox>
                             </Select.Popover>
                           </Select>
                           <Button variant="danger-soft" size="sm" isIconOnly onPress={() => setForm(f => ({ ...f, slots: f.slots.filter((_, idx) => idx !== i) }))} aria-label="删除时段"><Trash2 size={14} /></Button>

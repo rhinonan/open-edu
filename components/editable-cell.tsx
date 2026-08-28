@@ -70,7 +70,7 @@ export default function EditableCell({ value, type = 'text', options, nullOnEmpt
         <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
         <Select.Popover>
           <ListBox>
-            {options.map(o => <ListBox.Item key={o} id={o}>{o === '' ? '（清空）' : o}</ListBox.Item>)}
+            {options.map(o => <ListBox.Item key={o} id={o} textValue={o === '' ? '（清空）' : o}>{o === '' ? '（清空）' : o}</ListBox.Item>)}
           </ListBox>
         </Select.Popover>
       </Select>

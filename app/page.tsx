@@ -178,9 +178,9 @@ export default function HomePage() {
               </Select.Trigger>
               <Select.Popover>
                 <ListBox>
-                  <ListBox.Item id={3}>近 3 月</ListBox.Item>
-                  <ListBox.Item id={6}>近 6 月</ListBox.Item>
-                  <ListBox.Item id={12}>近 12 月</ListBox.Item>
+                  <ListBox.Item id={3} textValue="近 3 月">近 3 月</ListBox.Item>
+                  <ListBox.Item id={6} textValue="近 6 月">近 6 月</ListBox.Item>
+                  <ListBox.Item id={12} textValue="近 12 月">近 12 月</ListBox.Item>
                 </ListBox>
               </Select.Popover>
             </Select>
@@ -208,8 +208,8 @@ export default function HomePage() {
                   </Select.Trigger>
                   <Select.Popover>
                     <ListBox>
-                      <ListBox.Item id="group">按小组</ListBox.Item>
-                      <ListBox.Item id="level">按学生层次</ListBox.Item>
+                      <ListBox.Item id="group" textValue="按小组">按小组</ListBox.Item>
+                      <ListBox.Item id="level" textValue="按学生层次">按学生层次</ListBox.Item>
                     </ListBox>
                   </Select.Popover>
                 </Select>

@@ -131,7 +131,7 @@ export default function GradesPage() {
           <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
           <Select.Popover>
             <ListBox>
-              {exams.map(e => <ListBox.Item key={e} id={e}>{e || '未命名考试'}</ListBox.Item>)}
+              {exams.map(e => <ListBox.Item key={e} id={e} textValue={e || '未命名考试'}>{e || '未命名考试'}</ListBox.Item>)}
             </ListBox>
           </Select.Popover>
         </Select>
