@@ -13,6 +13,6 @@
 
 body {
   @apply bg-background text-foreground antialiased;
-  font-family: "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei UI", "Microsoft YaHei", system-ui, -apple-system, "Segoe UI", sans-serif;
-  font-weight: 400;
+  font-family: "PingFang SC", "Hiragino Sans GB",  "Microsoft YaHei UI", "Microsoft YaHei", system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* font-weight: 400; */
 }
