@@ -108,4 +108,23 @@ describe('resetData', () => {
     expect((db.prepare('SELECT COUNT(*) AS n FROM classes').get() as { n: number }).n).toBe(1);
     expect((db.prepare('SELECT COUNT(*) AS n FROM students').get() as { n: number }).n).toBe(2);
   });
+
+  it('会重建缺 class_id 的旧 todos 表（self-heal 不再残留脏表）', () => {
+    const { db } = makeDb();
+    // 模拟线上旧库：todos 缺 class_id 列，resetData 必须把它 drop 掉重建
+    db.exec('DROP TABLE todos;');
+    db.exec(`CREATE TABLE todos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      date TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT '待办',
+      priority TEXT NOT NULL DEFAULT '普通'
+    );`);
+    db.prepare("INSERT INTO todos (title, date, status, priority) VALUES ('旧待办', '2026-01-01', '待办', '普通')").run();
+
+    resetData(db);
+
+    const cols = (db.prepare('PRAGMA table_info(todos)').all() as { name: string }[]).map(c => c.name);
+    expect(cols).toContain('class_id');
+  });
 });

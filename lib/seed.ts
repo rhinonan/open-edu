@@ -148,7 +148,7 @@ export function resetClass(db: DatabaseSync, classId: number): void {
 /** 全库重置（启动自愈用）：DROP 全部 → 重建 → 引导 */
 export function resetData(db: DatabaseSync): void {
   const tables = ['sessions', 'work_logs', 'safety_logs', 'parent_comm', 'evaluation', 'home_visits',
-    'conversations', 'timetable', 'period_slots', 'schedule_templates', 'teacher_schedule', 'grades', 'discipline_records', 'leave_records', 'seats', 'students',
+    'conversations', 'timetable', 'period_slots', 'schedule_templates', 'teacher_schedule', 'todos', 'grades', 'discipline_records', 'leave_records', 'seats', 'students',
     'classroom_config', 'users', 'classes'];
   db.exec(tables.map(t => `DROP TABLE IF EXISTS ${t}`).join(';'));
   db.exec(SCHEMA_SQL);
