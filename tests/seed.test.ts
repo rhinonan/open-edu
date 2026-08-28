@@ -32,10 +32,12 @@ describe('schema', () => {
 });
 
 describe('seedClass', () => {
-  it('灌入 45 名随机学生，且带对 class_id', () => {
+  it('灌入 2 名演示学生（一男一女），且带对 class_id', () => {
     const { db, classId } = makeDb();
     const n = (db.prepare('SELECT COUNT(*) AS n FROM students WHERE class_id = ?').get(classId) as { n: number }).n;
-    expect(n).toBe(45);
+    expect(n).toBe(2);
+    const genders = db.prepare('SELECT gender FROM students WHERE class_id = ? ORDER BY id').all(classId) as { gender: string }[];
+    expect(genders.map(g => g.gender).sort()).toEqual(['女', '男']);
   });
 
   it('两班互相隔离', () => {
@@ -43,7 +45,7 @@ describe('seedClass', () => {
     const { lastInsertRowid: cid2 } = db.prepare(`INSERT INTO classes (name, head_teacher, grade_band) VALUES ('六年级（2）班', '李老师', '六年级')`).run();
     seedClass(db, Number(cid2));
     const r = (db.prepare('SELECT class_id, COUNT(*) AS n FROM students GROUP BY class_id ORDER BY class_id').all() as { class_id: number; n: number }[]);
-    expect(r).toEqual([{ class_id: 1, n: 45 }, { class_id: 2, n: 45 }]);
+    expect(r).toEqual([{ class_id: 1, n: 2 }, { class_id: 2, n: 2 }]);
   });
 
   it('每班各自有 11 个时段，彼此隔离', () => {
@@ -94,8 +96,8 @@ describe('resetClass', () => {
     seedClass(db, Number(cid2));
     db.prepare('DELETE FROM students WHERE class_id = 1 AND id IN (SELECT id FROM students WHERE class_id = 1 LIMIT 5)').run();
     resetClass(db, 1);
-    expect((db.prepare('SELECT COUNT(*) AS n FROM students WHERE class_id = 1').get() as { n: number }).n).toBe(45);
-    expect((db.prepare('SELECT COUNT(*) AS n FROM students WHERE class_id = 2').get() as { n: number }).n).toBe(45);
+    expect((db.prepare('SELECT COUNT(*) AS n FROM students WHERE class_id = 1').get() as { n: number }).n).toBe(2);
+    expect((db.prepare('SELECT COUNT(*) AS n FROM students WHERE class_id = 2').get() as { n: number }).n).toBe(2);
   });
 });
 
@@ -104,6 +106,6 @@ describe('resetData', () => {
     const { db } = makeDb();
     resetData(db);
     expect((db.prepare('SELECT COUNT(*) AS n FROM classes').get() as { n: number }).n).toBe(1);
-    expect((db.prepare('SELECT COUNT(*) AS n FROM students').get() as { n: number }).n).toBe(45);
+    expect((db.prepare('SELECT COUNT(*) AS n FROM students').get() as { n: number }).n).toBe(2);
   });
 });

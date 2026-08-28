@@ -14,8 +14,6 @@ function rand(n: number) { return Math.floor(Math.random() * n); }
 function pick<T>(arr: T[]): T { return arr[rand(arr.length)]; }
 function phone() { return pick(PHONE_PREFIX) + String(rand(90000000) + 10000000); }
 function date(daysAgo: number) { const d = new Date(); d.setDate(d.getDate() - daysAgo); return d.toISOString().slice(0, 10); }
-function uniqueNames(n: number): string[] { const out = new Set<string>(); while (out.size < n) out.add(pick(SURNAMES) + pick(GIVEN)); return [...out]; }
-
 function fakeIdcard(i: number): string {
   const area = '430102';
   const birth = `${2013 + rand(2)}${String(rand(12) + 1).padStart(2, '0')}${String(rand(28) + 1).padStart(2, '0')}`;
@@ -33,13 +31,15 @@ export function seedClass(db: DatabaseSync, classId: number): void {
 
   const ins = db.prepare(`INSERT INTO students (class_id, student_no, name, gender, parent_name, parent_phone, idcard, address, level, group_no, role, noon_care, breakfast, afternoon_care, remark)
     VALUES (@classId, @student_no, @name, @gender, @parent_name, @phone, @idcard, @address, @level, @group, @role, @noon, @breakfast, @care, '')`);
-  const students = uniqueNames(45);
+  // 演示班只播种 2 名学生（一男一女）
+  const students = [pick(SURNAMES) + '子轩', pick(SURNAMES) + '子涵'];
+  const genders = ['男', '女'];
   students.forEach((name, i) => {
     ins.run({
       classId,
       student_no: String(i + 1).padStart(2, '0'),
       name,
-      gender: rand(2) === 0 ? '女' : '男',
+      gender: genders[i],
       parent_name: pick(SURNAMES) + pick(GIVEN),
       phone: phone(),
       idcard: fakeIdcard(i),
@@ -82,11 +82,11 @@ export function seedClass(db: DatabaseSync, classId: number): void {
   lv.run(classId, students[1], '病假', '感冒发烧', date(2), date(1), 16);
 
   const dc = db.prepare(`INSERT INTO discipline_records (class_id, date, student_name, category, content, action) VALUES (?, ?, ?, ?, ?, ?)`);
-  dc.run(classId, date(1), students[2], '课堂表现', '上课讲话', '谈话教育');
-  dc.run(classId, date(2), students[3], '迟到早退', '迟到 10 分钟', '提醒并联系家长');
+  dc.run(classId, date(1), students[0], '课堂表现', '上课讲话', '谈话教育');
+  dc.run(classId, date(2), students[1], '迟到早退', '迟到 10 分钟', '提醒并联系家长');
 
   const conv = db.prepare(`INSERT INTO conversations (class_id, date, student_name, topic, content, effect) VALUES (?, ?, ?, ?, ?, ?)`);
-  conv.run(classId, date(1), students[2], '课堂纪律', '约定课堂不讲话', '有改善');
+  conv.run(classId, date(1), students[0], '课堂纪律', '约定课堂不讲话', '有改善');
   const hv = db.prepare(`INSERT INTO home_visits (class_id, date, student_name, way, content, is_meeting) VALUES (?, ?, ?, ?, ?, ?)`);
   hv.run(classId, date(5), students[0], '家访', '了解家庭学习环境', 0);
   hv.run(classId, date(6), '全班', '家长会', '期中家长会：学情反馈', 1);

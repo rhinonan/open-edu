@@ -17,8 +17,8 @@ describe('dashboardStats', () => {
   it('聚合各项统计（按班）', () => {
     const { db, classId } = makeDb();
     const s = dashboardStats(db, classId);
-    expect(s.studentCount).toBe(45);
-    expect(s.maleCount + s.femaleCount).toBe(45);
+    expect(s.studentCount).toBe(2);
+    expect(s.maleCount + s.femaleCount).toBe(2);
     expect(s.todayLeaves).toBeGreaterThanOrEqual(0);
     expect(s.latestExamAvg).toBeGreaterThan(0);
     expect(s.monthWorkLogs).toBeGreaterThan(0);

@@ -26,7 +26,7 @@ describe('importStudents', () => {
     const r = importStudents(db, classId, [item({ idcard: '430102199001010011', name: '新增生' })]);
     expect(r.created).toBe(1);
     expect(r.updated).toBe(0);
-    expect(list(db, 'students', classId).length).toBe(46);
+    expect(list(db, 'students', classId).length).toBe(3);
   });
 
   it('已存在身份证 → 覆盖全部字段', () => {
@@ -38,7 +38,7 @@ describe('importStudents', () => {
     expect(row.name).toBe('覆盖名');
     expect(row.level).toBe(1);
     expect(row.gender).toBe('女');
-    expect(list(db, 'students', classId).length).toBe(45);
+    expect(list(db, 'students', classId).length).toBe(2);
   });
 
   it('空身份证 → 跳过并带行号', () => {
@@ -72,7 +72,7 @@ describe('importStudents', () => {
     const r = importStudents(db, classId, [item({ idcard: '430102199001020022', name: '无学号生' })]);
     expect(r.created).toBe(1);
     const row = list(db, 'students', classId).find(x => x.idcard === '430102199001020022');
-    expect(row?.student_no).toBe('46');
+    expect(row?.student_no).toBe('03');
   });
 });
 

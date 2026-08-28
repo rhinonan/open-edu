@@ -51,14 +51,14 @@ describe('通用路由鉴权', () => {
     expect(res.status).toBe(401);
   });
 
-  it('teacher 登录后 GET /api/students 返回本班 45 人', async () => {
+  it('teacher 登录后 GET /api/students 返回本班 2 人', async () => {
     const db = makeDb();
     const token = createSession(db, userId(db, 'demo'));
     const res = await resourceGET(makeRequest('GET', '/api/students', token), studentsCtx);
     expect(res.status).toBe(200);
     const rows = await res.json();
     expect(Array.isArray(rows)).toBe(true);
-    expect(rows.length).toBe(45);
+    expect(rows.length).toBe(2);
   });
 
   it('teacher 可新增/改名/删除本班 period_slots', async () => {
@@ -107,7 +107,7 @@ describe('通用路由鉴权', () => {
     expect(post.status).toBe(400);
   });
 
-  it('HTTP 层跨班隔离：第一个 teacher 仍只见自己班 45 人', async () => {
+  it('HTTP 层跨班隔离：第一个 teacher 仍只见自己班 2 人', async () => {
     const db = makeDb();
     const { lastInsertRowid: cid2 } = db.prepare(`INSERT INTO classes (name, head_teacher, grade_band) VALUES ('六年级（2）班', '李老师', '六年级')`).run();
     seedClass(db, Number(cid2));
@@ -117,7 +117,7 @@ describe('通用路由鉴权', () => {
     const res = await resourceGET(makeRequest('GET', '/api/students', token), studentsCtx);
     expect(res.status).toBe(200);
     const rows = await res.json();
-    expect(rows.length).toBe(45); // 而非 90
+    expect(rows.length).toBe(2); // 而非 90
   });
 });
 

@@ -17,7 +17,7 @@ describe('store', () => {
   it('list 只返回本班学生并排序', () => {
     const { db, classId } = makeDb();
     const rows = list(db, 'students', classId);
-    expect(rows.length).toBe(45);
+    expect(rows.length).toBe(2);
     expect(rows[0].name).toBeTruthy();
   });
 
@@ -25,7 +25,7 @@ describe('store', () => {
     const { db, classId } = makeDb();
     const { lastInsertRowid: cid2 } = db.prepare(`INSERT INTO classes (name, head_teacher, grade_band) VALUES ('六年级（2）班', '李老师', '六年级')`).run();
     seedClass(db, Number(cid2));
-    expect(list(db, 'students', classId).length).toBe(45); // 只看到自己的班
+    expect(list(db, 'students', classId).length).toBe(2); // 只看到自己的班
   });
 
   it('create 新增并返回带 id 的行，class_id 由本层注入', () => {
@@ -80,8 +80,8 @@ describe('store', () => {
     seedClass(db, Number(cid2));
     const mine = list(db, 'students', classId);
     removeMany(db, 'students', [mine[0].id as number, mine[1].id as number], classId);
-    expect(list(db, 'students', classId).length).toBe(43);
-    expect(list(db, 'students', Number(cid2)).length).toBe(45); // 他班不受影响
+    expect(list(db, 'students', classId).length).toBe(0);
+    expect(list(db, 'students', Number(cid2)).length).toBe(2); // 他班不受影响
   });
 
   it('update/remove 越权访问他人班级则抛错/不生效', () => {
@@ -91,7 +91,7 @@ describe('store', () => {
     const other = list(db, 'students', Number(cid2))[0];
     expect(() => update(db, 'students', other.id as number, { name: 'x' }, classId)).toThrow();
     remove(db, 'students', other.id as number, classId);
-    expect(list(db, 'students', Number(cid2)).length).toBe(45); // 他班数据未被删
+    expect(list(db, 'students', Number(cid2)).length).toBe(2); // 他班数据未被删
   });
 
   it('tableColumns 来自 PRAGMA', () => {
