@@ -4,7 +4,7 @@ import { Button, Skeleton, Table } from '@heroui/react';
 import { useResourceRows } from '@/components/use-resource';
 import EditableCell from '@/components/editable-cell';
 import PeriodSlotsModal from './period-slots-modal';
-import { buildClassGrid, classStats, SUBJECTS, KIND_LABELS } from '@/lib/timetable';
+import { buildClassGrid, classStats, subjectColor, SUBJECTS, KIND_LABELS } from '@/lib/timetable';
 
 const DAYS = ['周一', '周二', '周三', '周四', '周五'];
 
@@ -16,6 +16,10 @@ export default function ClassTimetable() {
   const ordered = useMemo(() => [...slots].sort((a, b) => Number(a.seq) - Number(b.seq)), [slots]);
   const grid = useMemo(() => buildClassGrid(ordered, tt), [ordered, tt]);
   const stats = useMemo(() => classStats(ordered, tt), [ordered, tt]);
+  const subjectStats = useMemo(
+    () => SUBJECTS.filter(s => s !== '' && (stats.bySubject[s] ?? 0) > 0).map(s => ({ subject: s, count: stats.bySubject[s]! })),
+    [stats],
+  );
 
   const saveSubject = async (weekday: number, periodId: number, subject: string | number | null) => {
     const v = String(subject ?? '');
@@ -31,15 +35,23 @@ export default function ClassTimetable() {
         <h3 className="m-0 text-base font-semibold text-slate-800">班级课表</h3>
         <Button variant="outline" size="sm" onPress={() => setSlotModalOpen(true)}>时段管理</Button>
       </div>
-      <div className="mb-4 grid grid-cols-2 gap-3">
+      <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
           <div className="text-xs text-slate-500">每周正课总课时</div>
           <div className="mt-1 text-xl font-semibold text-slate-800">{stats.total}</div>
         </div>
-        <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
-          <div className="text-xs text-slate-500">语文任教课时</div>
-          <div className="mt-1 text-xl font-semibold text-blue-600">{stats.chinese}</div>
-        </div>
+        {subjectStats.map(({ subject, count }) => {
+          const c = subjectColor(subject);
+          return (
+            <div key={subject} className="rounded-xl border border-gray-200 bg-white px-4 py-3">
+              <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                <span className={`inline-block h-2 w-2 shrink-0 rounded-full ${c.dot}`} />
+                {subject}
+              </div>
+              <div className={`mt-1 text-xl font-semibold ${c.text}`}>{count}</div>
+            </div>
+          );
+        })}
       </div>
       {(slotLoading || ttLoading) ? (
         <div className="space-y-3">
@@ -70,15 +82,16 @@ export default function ClassTimetable() {
                       if (!isSubject) {
                         return <Table.Cell key={key} className="text-left"><span className="px-1 text-xs text-slate-400">{KIND_LABELS[String(slot.kind)]}</span></Table.Cell>;
                       }
-                      const chinese = r && r.is_chinese == 1;
+                      const subj = r ? String(r.subject) : '';
+                      const color = subjectColor(subj);
                       return (
-                        <Table.Cell key={key} className={`text-left ${chinese ? 'bg-blue-50' : ''}`}>
+                        <Table.Cell key={key} className={`text-left ${color.cell}`}>
                           <EditableCell
                             value={r ? r.subject : null}
                             type="select"
                             options={SUBJECTS}
                             onSave={v => saveSubject(wd, Number(slot.id), v)}
-                            className={chinese ? 'font-medium text-blue-700' : 'text-slate-700'}
+                            className={`font-medium ${color.text}`}
                           />
                         </Table.Cell>
                       );

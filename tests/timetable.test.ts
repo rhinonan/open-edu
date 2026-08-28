@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { DatabaseSync } from 'node:sqlite';
 import { SCHEMA_SQL } from '../lib/schema';
 import { seedClass } from '../lib/seed';
-import { buildClassGrid, classStats, removePeriodSlot, KIND_LABELS, SUBJECTS } from '../lib/timetable';
+import { buildClassGrid, classStats, removePeriodSlot, KIND_LABELS, SUBJECTS, SUBJECT_COLORS } from '../lib/timetable';
 import type { Row } from '../lib/types';
 
 function makeDb() {
@@ -64,14 +64,22 @@ describe('纯函数', () => {
     expect(SUBJECTS).toContain('');
   });
 
-  it('classStats 只统计正课且有学科的课时；is_chinese 计入 chinese', () => {
+  it('每个非空学科都有专属配色', () => {
+    for (const s of SUBJECTS) {
+      if (s === '') continue;
+      expect(SUBJECT_COLORS[s], s).toBeTruthy();
+    }
+  });
+
+  it('classStats 只统计正课且有学科的课时，并按学科分列', () => {
     const { db, classId } = makeDb();
     const slots = query<Row>(db, 'SELECT * FROM period_slots');
     const tt = query<Row>(db, 'SELECT * FROM timetable WHERE class_id = ?', classId);
     const stats = classStats(slots, tt);
     expect(stats.total).toBe(35);
+    expect(Object.values(stats.bySubject).reduce((a, b) => a + b, 0)).toBe(35);
     const chinese = tt.filter(r => r.subject === '语文').length;
-    expect(stats.chinese).toBe(chinese);
+    expect(stats.bySubject['语文'] ?? 0).toBe(chinese);
   });
 
   it('classStats 忽略无学科行', () => {
@@ -81,7 +89,7 @@ describe('纯函数', () => {
     const one = { ...tt[0], subject: '' };
     const stats = classStats(slots, [one]);
     expect(stats.total).toBe(0);
-    expect(stats.chinese).toBe(0);
+    expect(Object.keys(stats.bySubject)).toHaveLength(0);
   });
 
   it('buildClassGrid 以 `${weekday}-${period_id}` 为键', () => {
