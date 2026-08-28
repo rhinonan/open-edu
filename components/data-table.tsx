@@ -117,9 +117,9 @@ export default function DataTable({ columns, rows, loading, label, onSave, pageS
   }
 
   return (
-    <div>
-      <Table.Root>
-        <Table.ScrollContainer>
+    <div className="flex min-h-0 flex-1 flex-col">
+      <Table.Root className="min-h-0 min-w-0 flex-1 grid-rows-1">
+        <Table.ScrollContainer className="min-h-0 min-w-0 overflow-y-auto">
           <Table.Content aria-label={label} sortDescriptor={sort} onSortChange={(d) => { setSort(d); resetPage(); }} style={minWidth ? { minWidth } : undefined}>
           <Table.Header columns={renderCols}>
             {(col: ColumnDef & { key: string }) => (
@@ -172,7 +172,7 @@ export default function DataTable({ columns, rows, loading, label, onSave, pageS
         </Table.ScrollContainer>
       </Table.Root>
       {pageSize && pageCount > 1 && (
-        <Pagination.Root size="sm" className="mt-3 flex justify-end">
+        <Pagination.Root size="sm" className="mt-3 flex shrink-0 justify-end">
           <Pagination.Content>
             <Pagination.Item><Pagination.Previous onPress={() => setPage(p => Math.max(1, p - 1))}><Pagination.PreviousIcon /></Pagination.Previous></Pagination.Item>
             {Array.from({ length: pageCount }, (_, i) => i + 1).map(p => (

@@ -34,7 +34,7 @@ export default function EvaluationPage() {
   })), [rows]);
 
   return (
-    <div>
+    <div className="flex min-h-0 flex-1 flex-col">
       <TableToolbar title="综合素质评价" columns={TOOLBAR_COLS} hidden={hidden} onToggleColumn={toggle} rows={rows} />
       <div className="mb-4 grid gap-4 md:grid-cols-2">
         <div className="rounded-xl bg-white p-4">

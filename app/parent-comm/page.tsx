@@ -48,7 +48,7 @@ export default function ParentCommPage() {
   };
 
   return (
-    <div>
+    <div className="flex min-h-0 flex-1 flex-col">
       <TableToolbar title="家校沟通" columns={TOOLBAR_COLS} hidden={hidden} onToggleColumn={toggle} rows={rows} onAdd={() => setAddOpen(true)} />
       <DataTable label="家校沟通" columns={columns} rows={rows} loading={loading} onSave={update}
         actions={(r) => <Button variant="danger-soft" size="sm" onPress={() => setDeleting(r)}>删除</Button>} />

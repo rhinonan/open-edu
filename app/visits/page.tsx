@@ -79,7 +79,7 @@ export default function VisitsPage() {
   };
 
   return (
-    <div>
+    <div className="flex min-h-0 flex-1 flex-col">
       <div className="mb-4 grid grid-cols-3 gap-3">
         {stats.map(s => <StatCard key={s.title} title={s.title} value={s.value} />)}
       </div>

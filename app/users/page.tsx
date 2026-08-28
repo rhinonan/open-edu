@@ -72,7 +72,7 @@ export default function UsersPage() {
   };
 
   return (
-    <div>
+    <div className="flex min-h-0 flex-1 flex-col">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="m-0 text-lg font-semibold text-slate-800">用户管理</h2>
         <Button variant="primary" size="sm" onPress={() => setOpen(true)}>新增老师账号</Button>

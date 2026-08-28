@@ -132,7 +132,7 @@ export default function StudentsPage() {
   };
 
   return (
-    <div>
+    <div className="flex min-h-0 flex-1 flex-col">
       <TableToolbar title="学生管理" columns={TOOLBAR_COLS} hidden={hidden} onToggleColumn={toggle} rows={rows} onAdd={() => setAddOpen(true)} onImport={() => setImportOpen(true)} />
       <DataTable
         label="学生管理"
@@ -140,7 +140,7 @@ export default function StudentsPage() {
         rows={rows}
         loading={loading}
         onSave={update}
-        pageSize={10}
+        pageSize={20}
         actions={(r) => <Button variant="danger-soft" size="sm" onPress={() => setDeleting(r)}>删除</Button>}
       />
       <FormModal title="新增学生" fields={FIELDS} open={addOpen} onClose={() => setAddOpen(false)} onSubmit={submit} />

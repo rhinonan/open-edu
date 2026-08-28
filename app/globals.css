@@ -16,3 +16,12 @@ body {
   font-family: "PingFang SC", "Hiragino Sans GB",  "Microsoft YaHei UI", "Microsoft YaHei", system-ui, -apple-system, "Segoe UI", sans-serif;
   /* font-weight: 400; */
 }
+
+/* 数据表格内部纵向滚动时，表头吸顶固定 */
+.table__scroll-container .table__column {
+  @apply bg-surface-secondary;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  box-shadow: 0 1px 0 0 var(--color-separator);
+}

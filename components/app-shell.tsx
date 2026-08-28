@@ -177,11 +177,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <EditableProvider>
-      <div className="flex min-h-screen bg-background">
+      <div className="flex h-dvh overflow-hidden bg-background">
         {!mobile && sidebar}
-        <div className={`flex min-h-screen flex-1 flex-col ${mobile ? '' : 'pl-64'}`}>
+        <div className={`flex h-full min-h-0 flex-1 flex-col ${mobile ? '' : 'pl-64'}`}>
           <ShellHeader mobile={mobile} me={me} onOpenDrawer={() => setDrawerOpen(true)} />
-          <main className="w-full px-5 pb-10 pt-4">{children}</main>
+          <main className="flex min-h-0 w-full flex-1 flex-col overflow-y-auto px-5 pb-4 pt-4">{children}</main>
         </div>
         {mobile && (
           <Drawer isOpen={drawerOpen} onOpenChange={setDrawerOpen}>

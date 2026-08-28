@@ -66,7 +66,7 @@ export default function WorkLogsPage() {
   };
 
   return (
-    <div>
+    <div className="flex min-h-0 flex-1 flex-col">
       <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
         {stats.map(s => <StatCard key={s.title} title={s.title} value={s.value} suffix={s.suffix} />)}
       </div>
