@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { DatabaseSync } from 'node:sqlite';
 import { SCHEMA_SQL } from '../lib/schema';
 import { seedClass } from '../lib/seed';
-import { list, get, create, update, remove, tableColumns } from '../lib/store';
+import { list, get, create, update, remove, removeMany, tableColumns } from '../lib/store';
 
 function makeDb() {
   const db = new DatabaseSync(':memory:');
@@ -72,6 +72,16 @@ describe('store', () => {
     const before = list(db, 'students', classId).length;
     remove(db, 'students', list(db, 'students', classId)[0].id as number, classId);
     expect(list(db, 'students', classId).length).toBe(before - 1);
+  });
+
+  it('removeMany 批量删除多条，只删本班', () => {
+    const { db, classId } = makeDb();
+    const { lastInsertRowid: cid2 } = db.prepare(`INSERT INTO classes (name, head_teacher, grade_band) VALUES ('六年级（2）班', '李老师', '六年级')`).run();
+    seedClass(db, Number(cid2));
+    const mine = list(db, 'students', classId);
+    removeMany(db, 'students', [mine[0].id as number, mine[1].id as number], classId);
+    expect(list(db, 'students', classId).length).toBe(43);
+    expect(list(db, 'students', Number(cid2)).length).toBe(45); // 他班不受影响
   });
 
   it('update/remove 越权访问他人班级则抛错/不生效', () => {

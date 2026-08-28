@@ -1,6 +1,5 @@
 'use client';
 import { useMemo, useState } from 'react';
-import { Button } from '@heroui/react';
 import dayjs from 'dayjs';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import DataTable, { type ColumnDef } from '@/components/data-table';
@@ -11,7 +10,6 @@ import StatCard from '@/components/stat-card';
 import { useResourceRows } from '@/components/use-resource';
 import { CategoryColor } from '@/lib/color-utils';
 import { toast } from '@/lib/toast';
-import type { Row } from '@/lib/types';
 
 const WORK_TYPES = ['班级管理', '教学教研', '家校沟通', '学生培优', '生涯活动', '安全教育', '会议培训', '心理辅导'];
 const TOOLBAR_COLS: ToolbarColumn[] = [
@@ -37,10 +35,11 @@ const FIELDS: FieldDef[] = [
 ];
 
 export default function WorkLogsPage() {
-  const { rows, loading, update, create, remove } = useResourceRows('work_logs');
+  const { rows, loading, update, create, removeMany } = useResourceRows('work_logs');
   const { hidden, toggle } = useColumnVisibility('gzt:cols:work_logs');
   const [addOpen, setAddOpen] = useState(false);
-  const [deleting, setDeleting] = useState<Row | null>(null);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [batchIds, setBatchIds] = useState<number[] | null>(null);
 
   const columns = useMemo(() => COLUMNS.filter(c => !hidden.has(c.key)), [hidden]);
 
@@ -70,9 +69,9 @@ export default function WorkLogsPage() {
       <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
         {stats.map(s => <StatCard key={s.title} title={s.title} value={s.value} suffix={s.suffix} />)}
       </div>
-      <TableToolbar title="工作留痕" columns={TOOLBAR_COLS} hidden={hidden} onToggleColumn={toggle} rows={rows} onAdd={() => setAddOpen(true)} />
+      <TableToolbar title="工作留痕" columns={TOOLBAR_COLS} hidden={hidden} onToggleColumn={toggle} rows={rows} onAdd={() => setAddOpen(true)} selectedKeys={selected} onBatchDelete={() => setBatchIds([...selected])} />
       <DataTable label="工作留痕" columns={columns} rows={rows} loading={loading} onSave={update}
-        actions={(r) => <Button variant="danger-soft" size="sm" onPress={() => setDeleting(r)}>删除</Button>} />
+        selectable selectedKeys={selected} onSelectionChange={setSelected} />
       <div className="mt-4 rounded-xl bg-white p-4">
         <h3 className="mb-3 text-sm font-semibold text-slate-600">工作类型分布（环形饼图）</h3>
         <div className="h-56">
@@ -88,8 +87,9 @@ export default function WorkLogsPage() {
         </div>
       </div>
       <FormModal title="新增工作记录" fields={FIELDS} open={addOpen} onClose={() => setAddOpen(false)} onSubmit={submit} />
-      <Confirm open={!!deleting} onOpenChange={(o) => { if (!o) setDeleting(null); }} title="删除记录" message="确定删除该记录？" confirmText="删除" danger
-        onConfirm={async () => { if (!deleting) return; try { await remove(deleting.id as number); toast.success('已删除'); } catch { toast.error('删除失败'); } setDeleting(null); }} />
+      <Confirm open={!!batchIds} onOpenChange={(o) => { if (!o) setBatchIds(null); }} title="删除记录"
+        message={`确定删除选中的 ${batchIds?.length ?? 0} 条记录？`} confirmText="删除" danger
+        onConfirm={async () => { if (!batchIds) return; try { await removeMany(batchIds); toast.success(`已删除 ${batchIds.length} 条`); } catch { toast.error('删除失败'); } setBatchIds(null); setSelected(new Set()); }} />
     </div>
   );
 }

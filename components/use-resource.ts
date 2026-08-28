@@ -46,5 +46,11 @@ export function useResourceRows(resource: ResourceKey) {
     setRows(prev => prev.filter(r => r.id !== id));
   }, [resource]);
 
-  return { rows, loading, reload, update, create, remove };
+  const removeMany = useCallback(async (ids: number[]) => {
+    await post<{ ok: boolean }>(`/api/${resource}/batch-delete`, { ids });
+    const idSet = new Set(ids);
+    setRows(prev => prev.filter(r => !idSet.has(r.id as number)));
+  }, [resource]);
+
+  return { rows, loading, reload, update, create, remove, removeMany };
 }

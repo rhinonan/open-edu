@@ -1,8 +1,9 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
-import { Input, ListBox, Select, TextArea } from '@heroui/react';
 import { Pencil } from 'lucide-react';
+import HoverIconButton from './hover-icon-button';
+import { CellInput, CellSelect, CellTextarea } from './cell-editors';
 import { useEditable } from './editable-context';
 import { toast } from '@/lib/toast';
 
@@ -17,9 +18,8 @@ interface Props {
   className?: string;
 }
 
-const dateInputCls =
-  'w-full rounded-lg border border-gray-300 bg-white px-2 py-1 text-sm text-slate-800 focus:border-accent focus:outline-none';
-
+/** 可编辑单元格：显示态与电话/身份证一致（悬浮显示编辑图标，点击图标进入编辑），
+ *  编辑态用紧凑输入控件，避免切换时表格抖动。 */
 export default function EditableCell({ value, type = 'text', options, nullOnEmpty, onSave, className }: Props) {
   const { editable } = useEditable();
   const [editing, setEditing] = useState(false);
@@ -31,13 +31,13 @@ export default function EditableCell({ value, type = 'text', options, nullOnEmpt
   if (!editable || !editing) {
     const display = value === null || value === '' ? '—' : String(value);
     return (
-      <span
-        className={`group block w-full rounded px-1 py-0.5 cursor-text ${editable ? 'hover:bg-gray-100' : 'cursor-default'} ${className ?? ''}`}
-        title={editable ? '点击编辑' : undefined}
-        onClick={() => { if (editable) { setDraft(String(value ?? '')); setEditing(true); } }}
-      >
-        {display}
-        {editable && <Pencil size={11} className="ml-5 inline cursor-pointer text-slate-400 opacity-0 transition-opacity group-hover:opacity-100" aria-hidden />}
+      <span className={`group inline-flex w-full items-center gap-1 ${className ?? ''}`}>
+        <span>{display}</span>
+        {editable && (
+          <HoverIconButton label="编辑" onClick={() => { setDraft(String(value ?? '')); setEditing(true); }}>
+            <Pencil size={13} />
+          </HoverIconButton>
+        )}
       </span>
     );
   }
@@ -60,38 +60,29 @@ export default function EditableCell({ value, type = 'text', options, nullOnEmpt
 
   if (type === 'select' && options) {
     return (
-      <Select
-        aria-label="选择"
-        className="w-full"
-        placeholder="选择"
-        selectedKey={value === null || value === '' ? '' : String(value)}
-        onSelectionChange={(k) => void save(k === null || k === '' ? null : String(k))}
-      >
-        <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
-        <Select.Popover>
-          <ListBox>
-            {options.map(o => <ListBox.Item key={o} id={o} textValue={o === '' ? '（清空）' : o}>{o === '' ? '（清空）' : o}</ListBox.Item>)}
-          </ListBox>
-        </Select.Popover>
-      </Select>
+      <CellSelect
+        autoFocus
+        options={options}
+        value={value === null || value === '' ? '' : String(value)}
+        onCommit={k => void save(k)}
+      />
     );
   }
   if (type === 'date') {
     return (
-      <input
+      <CellInput
         ref={inputRef}
         type="date"
         autoFocus
-        className={dateInputCls}
         defaultValue={String(value ?? '')}
-        onBlur={(e) => void save(e.target.value || null)}
+        onBlur={e => void save(e.target.value || null)}
       />
     );
   }
   if (type === 'textarea') {
     return (
-      <TextArea
-        autoFocus rows={2} className="w-full"
+      <CellTextarea
+        autoFocus rows={2}
         value={draft}
         onChange={e => setDraft(e.target.value)}
         onBlur={() => void save(nullOnEmpty && draft === '' ? null : draft)}
@@ -101,8 +92,8 @@ export default function EditableCell({ value, type = 'text', options, nullOnEmpt
   }
   if (type === 'number') {
     return (
-      <Input
-        ref={inputRef} autoFocus type="number" className="w-24"
+      <CellInput
+        ref={inputRef} autoFocus type="number"
         value={draft}
         onChange={e => setDraft(e.target.value)}
         onBlur={onBlurSave}
@@ -111,8 +102,8 @@ export default function EditableCell({ value, type = 'text', options, nullOnEmpt
     );
   }
   return (
-    <Input
-      ref={inputRef} className="min-w-32"
+    <CellInput
+      ref={inputRef} autoFocus
       value={draft}
       onChange={e => setDraft(e.target.value)}
       onBlur={onBlurSave}

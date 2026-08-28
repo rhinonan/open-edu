@@ -1,6 +1,5 @@
 'use client';
 import { useMemo, useState } from 'react';
-import { Button } from '@heroui/react';
 import dayjs from 'dayjs';
 import DataTable, { type ColumnDef } from '@/components/data-table';
 import TableToolbar, { useColumnVisibility, type ToolbarColumn } from '@/components/table-toolbar';
@@ -9,7 +8,6 @@ import Confirm from '@/components/confirm';
 import StatCard from '@/components/stat-card';
 import { useResourceRows } from '@/components/use-resource';
 import { toast } from '@/lib/toast';
-import type { Row } from '@/lib/types';
 
 const CATEGORIES = ['常规纪律', '迟到早退', '课堂表现', '课间行为', '卫生值日'];
 const TOOLBAR_COLS: ToolbarColumn[] = [
@@ -34,10 +32,11 @@ const FIELDS: FieldDef[] = [
 ];
 
 export default function DisciplinePage() {
-  const { rows, loading, update, create, remove } = useResourceRows('discipline_records');
+  const { rows, loading, update, create, removeMany } = useResourceRows('discipline_records');
   const { hidden, toggle } = useColumnVisibility('gzt:cols:discipline_records');
   const [addOpen, setAddOpen] = useState(false);
-  const [deleting, setDeleting] = useState<Row | null>(null);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [batchIds, setBatchIds] = useState<number[] | null>(null);
 
   const columns = useMemo(() => COLUMNS.filter(c => !hidden.has(c.key)), [hidden]);
 
@@ -62,12 +61,13 @@ export default function DisciplinePage() {
       <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
         {stats.map(s => <StatCard key={s.title} title={s.title} value={s.value} />)}
       </div>
-      <TableToolbar title="违纪台账" columns={TOOLBAR_COLS} hidden={hidden} onToggleColumn={toggle} rows={rows} onAdd={() => setAddOpen(true)} />
+      <TableToolbar title="违纪台账" columns={TOOLBAR_COLS} hidden={hidden} onToggleColumn={toggle} rows={rows} onAdd={() => setAddOpen(true)} selectedKeys={selected} onBatchDelete={() => setBatchIds([...selected])} />
       <DataTable label="违纪台账" columns={columns} rows={rows} loading={loading} onSave={update}
-        actions={(r) => <Button variant="danger-soft" size="sm" onPress={() => setDeleting(r)}>删除</Button>} />
+        selectable selectedKeys={selected} onSelectionChange={setSelected} />
       <FormModal title="新增违纪" fields={FIELDS} open={addOpen} onClose={() => setAddOpen(false)} onSubmit={submit} />
-      <Confirm open={!!deleting} onOpenChange={(o) => { if (!o) setDeleting(null); }} title="删除记录" message="确定删除该记录？" confirmText="删除" danger
-        onConfirm={async () => { if (!deleting) return; try { await remove(deleting.id as number); toast.success('已删除'); } catch { toast.error('删除失败'); } setDeleting(null); }} />
+      <Confirm open={!!batchIds} onOpenChange={(o) => { if (!o) setBatchIds(null); }} title="删除记录"
+        message={`确定删除选中的 ${batchIds?.length ?? 0} 条记录？`} confirmText="删除" danger
+        onConfirm={async () => { if (!batchIds) return; try { await removeMany(batchIds); toast.success(`已删除 ${batchIds.length} 条`); } catch { toast.error('删除失败'); } setBatchIds(null); setSelected(new Set()); }} />
     </div>
   );
 }

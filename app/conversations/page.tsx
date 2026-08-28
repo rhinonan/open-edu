@@ -1,6 +1,5 @@
 'use client';
 import { useMemo, useState } from 'react';
-import { Button } from '@heroui/react';
 import dayjs from 'dayjs';
 import DataTable, { type ColumnDef } from '@/components/data-table';
 import TableToolbar, { useColumnVisibility, type ToolbarColumn } from '@/components/table-toolbar';
@@ -8,7 +7,6 @@ import FormModal, { type FieldDef } from '@/components/form-modal';
 import Confirm from '@/components/confirm';
 import { useResourceRows } from '@/components/use-resource';
 import { toast } from '@/lib/toast';
-import type { Row } from '@/lib/types';
 
 const EFFECTS = ['有改善', '需持续跟进', '已解决'];
 const TOOLBAR_COLS: ToolbarColumn[] = [
@@ -33,10 +31,11 @@ const FIELDS: FieldDef[] = [
 ];
 
 export default function ConversationsPage() {
-  const { rows, loading, update, create, remove } = useResourceRows('conversations');
+  const { rows, loading, update, create, removeMany } = useResourceRows('conversations');
   const { hidden, toggle } = useColumnVisibility('gzt:cols:conversations');
   const [addOpen, setAddOpen] = useState(false);
-  const [deleting, setDeleting] = useState<Row | null>(null);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [batchIds, setBatchIds] = useState<number[] | null>(null);
 
   const columns = useMemo(() => COLUMNS.filter(c => !hidden.has(c.key)), [hidden]);
 
@@ -53,12 +52,13 @@ export default function ConversationsPage() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <TableToolbar title="谈话记录" columns={TOOLBAR_COLS} hidden={hidden} onToggleColumn={toggle} rows={rows} onAdd={() => setAddOpen(true)} />
+      <TableToolbar title="谈话记录" columns={TOOLBAR_COLS} hidden={hidden} onToggleColumn={toggle} rows={rows} onAdd={() => setAddOpen(true)} selectedKeys={selected} onBatchDelete={() => setBatchIds([...selected])} />
       <DataTable label="谈话记录" columns={columns} rows={rows} loading={loading} onSave={update}
-        actions={(r) => <Button variant="danger-soft" size="sm" onPress={() => setDeleting(r)}>删除</Button>} />
+        selectable selectedKeys={selected} onSelectionChange={setSelected} />
       <FormModal title="新增谈话记录" fields={FIELDS} open={addOpen} onClose={() => setAddOpen(false)} onSubmit={submit} />
-      <Confirm open={!!deleting} onOpenChange={(o) => { if (!o) setDeleting(null); }} title="删除记录" message="确定删除该记录？" confirmText="删除" danger
-        onConfirm={async () => { if (!deleting) return; try { await remove(deleting.id as number); toast.success('已删除'); } catch { toast.error('删除失败'); } setDeleting(null); }} />
+      <Confirm open={!!batchIds} onOpenChange={(o) => { if (!o) setBatchIds(null); }} title="删除记录"
+        message={`确定删除选中的 ${batchIds?.length ?? 0} 条记录？`} confirmText="删除" danger
+        onConfirm={async () => { if (!batchIds) return; try { await removeMany(batchIds); toast.success(`已删除 ${batchIds.length} 条`); } catch { toast.error('删除失败'); } setBatchIds(null); setSelected(new Set()); }} />
     </div>
   );
 }

@@ -1,7 +1,8 @@
 'use client';
 import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { ListBox, Pagination, Popover, Select, Skeleton, Table } from '@heroui/react';
+import { Checkbox, ListBox, Pagination, Popover, Select, Skeleton, Table } from '@heroui/react';
+import type { Selection } from '@heroui/react';
 import type { SortDescriptor } from '@heroui/react/rac';
 import { FilterX, SlidersHorizontal } from 'lucide-react';
 import EditableCell from './editable-cell';
@@ -35,6 +36,10 @@ export interface DataTableProps {
   onSave?: (id: number, patch: Partial<Row>) => Promise<void>;
   pageSize?: number;
   actions?: (row: Row) => ReactNode;
+  /** 开启复选框列。选中态由页面持有（受控）：勾选行后通过 onSelectionChange 上报。 */
+  selectable?: boolean;
+  selectedKeys?: Set<number>;
+  onSelectionChange?: (keys: Set<number>) => void;
   emptyText?: string;
   /** Minimum width (px) of the <table>. Keeps cells from being squeezed on narrow
    *  screens — the scroll container then scrolls horizontally instead. */
@@ -54,14 +59,17 @@ const compare = (a: string | number | null, b: string | number | null, dir: 'asc
 
 const fmtCell = (v: unknown): string => (v === null || v === '' ? '—' : String(v));
 
-export default function DataTable({ columns, rows, loading, label, onSave, pageSize, actions, emptyText, minWidth }: DataTableProps) {
+export default function DataTable({ columns, rows, loading, label, onSave, pageSize, actions, selectable, selectedKeys, onSelectionChange, emptyText, minWidth }: DataTableProps) {
   const [sort, setSort] = useState<SortDescriptor>(NO_SORT);
   const [filters, setFilters] = useState<Record<string, string | null>>({});
   const [page, setPage] = useState(1);
 
-  const renderCols = useMemo<Array<ColumnDef & { key: string }>>(() =>
-    actions ? [...columns, { key: '__actions', label: '操作' }] : columns,
-    [columns, actions]);
+  const renderCols = useMemo<Array<ColumnDef & { key: string }>>(() => {
+    let cols: Array<ColumnDef & { key: string }> = columns;
+    if (selectable) cols = [{ key: '__selection', label: '', noWrap: true, minWidth: 44, align: 'center' }, ...cols];
+    if (actions) cols = [...cols, { key: '__actions', label: '操作' }];
+    return cols;
+  }, [columns, selectable, actions]);
 
   const filtered = useMemo(() => {
     let list = rows;
@@ -84,12 +92,28 @@ export default function DataTable({ columns, rows, loading, label, onSave, pageS
   const visible = pageSize ? filtered.slice((safePage - 1) * pageSize, safePage * pageSize) : filtered;
   const resetPage = () => setPage(1);
 
+  const rowHeaderKey = renderCols.find(c => c.key !== '__selection')?.key;
+  const pageIds = visible.map(r => r.id as number);
+  const handleSelectionChange = (sel: Selection) => {
+    if (!onSelectionChange) return;
+    // RAC 的 'all' 表示“全选”，展开成当前页所有行 id
+    onSelectionChange(sel === 'all' ? new Set(pageIds) : new Set([...sel].map(Number)));
+  };
+
   const setFilter = (key: string, v: string | null) => {
     setFilters(prev => ({ ...prev, [key]: v }));
     setPage(1);
+    onSelectionChange?.(new Set());
   };
 
   const cell = (col: ColumnDef, r: Row): ReactNode => {
+    if (col.key === '__selection') {
+      return (
+        <Checkbox aria-label="选择本行" slot="selection">
+          <Checkbox.Content><Checkbox.Control><Checkbox.Indicator /></Checkbox.Control></Checkbox.Content>
+        </Checkbox>
+      );
+    }
     if (col.key === '__actions') return actions!(r);
     if (col.render) return col.render(r[col.key], r);
     if (col.type && onSave) {
@@ -120,28 +144,42 @@ export default function DataTable({ columns, rows, loading, label, onSave, pageS
     <div className="flex min-h-0 flex-1 flex-col">
       <Table.Root className="min-h-0 min-w-0 flex-1 grid-rows-1">
         <Table.ScrollContainer className="min-h-0 min-w-0 overflow-y-auto">
-          <Table.Content aria-label={label} sortDescriptor={sort} onSortChange={(d) => { setSort(d); resetPage(); }} style={minWidth ? { minWidth } : undefined}>
+          <Table.Content
+            aria-label={label}
+            sortDescriptor={sort}
+            onSortChange={(d) => { setSort(d); resetPage(); }}
+            selectionMode={selectable ? 'multiple' : undefined}
+            selectedKeys={selectable ? (selectedKeys as unknown as Selection) : undefined}
+            onSelectionChange={selectable ? handleSelectionChange : undefined}
+            style={minWidth ? { minWidth } : undefined}
+          >
           <Table.Header columns={renderCols}>
             {(col: ColumnDef & { key: string }) => (
               <Table.Column
                 key={col.key}
                 id={col.key}
                 allowsSorting={col.sortable}
-                isRowHeader={col.key === renderCols[0]?.key}
+                isRowHeader={col.key === rowHeaderKey}
                 style={{ minWidth: col.minWidth }}
               >
-                {({ sortDirection }: { sortDirection?: 'ascending' | 'descending' }) => (
-                  <div className="flex items-center gap-1.5">
-                    {col.sortable ? (
-                      <Table.SortableColumnHeader sortDirection={sortDirection}>{col.label}</Table.SortableColumnHeader>
-                    ) : (
-                      <span>{col.label}</span>
-                    )}
-                    {col.filterOptions && (
-                      <ColumnFilter col={col} value={filters[col.key] ?? null} onChange={setFilter} />
-                    )}
-                  </div>
-                )}
+                {({ sortDirection }: { sortDirection?: 'ascending' | 'descending' }) =>
+                  col.key === '__selection' ? (
+                    <Checkbox aria-label="全选" slot="selection">
+                      <Checkbox.Content><Checkbox.Control><Checkbox.Indicator /></Checkbox.Control></Checkbox.Content>
+                    </Checkbox>
+                  ) : (
+                    <div className="flex items-center gap-1.5">
+                      {col.sortable ? (
+                        <Table.SortableColumnHeader sortDirection={sortDirection}>{col.label}</Table.SortableColumnHeader>
+                      ) : (
+                        <span>{col.label}</span>
+                      )}
+                      {col.filterOptions && (
+                        <ColumnFilter col={col} value={filters[col.key] ?? null} onChange={setFilter} />
+                      )}
+                    </div>
+                  )
+                }
               </Table.Column>
             )}
           </Table.Header>

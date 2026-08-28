@@ -47,10 +47,11 @@ const FIELDS: FieldDef[] = [
 ];
 
 export default function VisitsPage() {
-  const { rows, loading, update, create, remove } = useResourceRows('home_visits');
+  const { rows, loading, update, create, removeMany } = useResourceRows('home_visits');
   const { hidden, toggle } = useColumnVisibility('gzt:cols:home_visits');
   const [addOpen, setAddOpen] = useState(false);
-  const [deleting, setDeleting] = useState<Row | null>(null);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [batchIds, setBatchIds] = useState<number[] | null>(null);
 
   const columns = useMemo(() => COLUMNS(update).filter(c => !hidden.has(c.key)), [hidden, update]);
 
@@ -83,12 +84,13 @@ export default function VisitsPage() {
       <div className="mb-4 grid grid-cols-3 gap-3">
         {stats.map(s => <StatCard key={s.title} title={s.title} value={s.value} />)}
       </div>
-      <TableToolbar title="生涯家访" columns={TOOLBAR_COLS} hidden={hidden} onToggleColumn={toggle} rows={rows} onAdd={() => setAddOpen(true)} />
+      <TableToolbar title="生涯家访" columns={TOOLBAR_COLS} hidden={hidden} onToggleColumn={toggle} rows={rows} onAdd={() => setAddOpen(true)} selectedKeys={selected} onBatchDelete={() => setBatchIds([...selected])} />
       <DataTable label="生涯家访" columns={columns} rows={rows} loading={loading} onSave={update}
-        actions={(r) => <Button variant="danger-soft" size="sm" onPress={() => setDeleting(r)}>删除</Button>} />
+        selectable selectedKeys={selected} onSelectionChange={setSelected} />
       <FormModal title="新增家访记录" fields={FIELDS} open={addOpen} onClose={() => setAddOpen(false)} onSubmit={submit} />
-      <Confirm open={!!deleting} onOpenChange={(o) => { if (!o) setDeleting(null); }} title="删除记录" message="确定删除该记录？" confirmText="删除" danger
-        onConfirm={async () => { if (!deleting) return; try { await remove(deleting.id as number); toast.success('已删除'); } catch { toast.error('删除失败'); } setDeleting(null); }} />
+      <Confirm open={!!batchIds} onOpenChange={(o) => { if (!o) setBatchIds(null); }} title="删除记录"
+        message={`确定删除选中的 ${batchIds?.length ?? 0} 条记录？`} confirmText="删除" danger
+        onConfirm={async () => { if (!batchIds) return; try { await removeMany(batchIds); toast.success(`已删除 ${batchIds.length} 条`); } catch { toast.error('删除失败'); } setBatchIds(null); setSelected(new Set()); }} />
     </div>
   );
 }

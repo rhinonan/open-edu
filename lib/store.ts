@@ -86,3 +86,17 @@ export function remove(db: DatabaseSync, resource: ResourceKey, id: number, clas
   const t = table(resource);
   db.prepare(`DELETE FROM ${t} WHERE id = ? AND class_id = ?`).run(id, classId);
 }
+
+export function removeMany(db: DatabaseSync, resource: ResourceKey, ids: number[], classId: number): void {
+  if (ids.length === 0) return;
+  const t = table(resource);
+  const placeholders = ids.map(() => '?').join(',');
+  db.exec('BEGIN');
+  try {
+    db.prepare(`DELETE FROM ${t} WHERE id IN (${placeholders}) AND class_id = ?`).run(...ids, classId);
+    db.exec('COMMIT');
+  } catch (e) {
+    db.exec('ROLLBACK');
+    throw e;
+  }
+}

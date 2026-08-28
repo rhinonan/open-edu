@@ -1,6 +1,5 @@
 'use client';
 import { useMemo, useState } from 'react';
-import { Button } from '@heroui/react';
 import DataTable, { type ColumnDef } from '@/components/data-table';
 import TableToolbar, { useColumnVisibility, type ToolbarColumn } from '@/components/table-toolbar';
 import FormModal, { type FieldDef } from '@/components/form-modal';
@@ -12,6 +11,7 @@ import { post } from '@/lib/api-client';
 import { toast } from '@/lib/toast';
 import type { ImportItem } from '@/lib/import';
 import type { Row } from '@/lib/types';
+import type { SensitiveKind } from '@/lib/sensitive';
 import SensitiveValue from '@/components/sensitive-value';
 
 const LEVELS = ['1', '2', '3', '4', '5', '6'];
@@ -30,8 +30,8 @@ const COLUMNS: ColumnDef[] = [
   { key: 'name', label: '姓名', type: 'text', minWidth: 84, noWrap: true },
   { key: 'gender', label: '性别', type: 'select', options: ['男', '女'], filterOptions: ['男', '女'], minWidth: 84, noWrap: true },
   { key: 'parent_name', label: '家长姓名', type: 'text', minWidth: 100, noWrap: true },
-  { key: 'parent_phone', label: '家长电话', minWidth: 148, noWrap: true, render: v => <SensitiveValue value={v} kind="phone" /> },
-  { key: 'idcard', label: '身份证', minWidth: 200, noWrap: true, render: v => <SensitiveValue value={v} kind="idcard" /> },
+  { key: 'parent_phone', label: '家长电话', minWidth: 148, noWrap: true },
+  { key: 'idcard', label: '身份证', minWidth: 200, noWrap: true },
   { key: 'address', label: '住址', type: 'text', minWidth: 160 },
   { key: 'level', label: '学生层次', type: 'select', options: LEVELS, filterOptions: LEVELS, minWidth: 112, noWrap: true },
   { key: 'role', label: '班干部职务', type: 'text', minWidth: 104, noWrap: true },
@@ -93,13 +93,32 @@ function parseRow(f: Record<string, string>, line: number): { ok: true; row: Imp
 }
 
 export default function StudentsPage() {
-  const { rows, loading, update, create, remove, reload } = useResourceRows('students');
+  const { rows, loading, update, create, removeMany, reload } = useResourceRows('students');
   const { hidden, toggle } = useColumnVisibility('gzt:cols:students', ['address', 'remark']);
   const [addOpen, setAddOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
-  const [deleting, setDeleting] = useState<Row | null>(null);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [batchIds, setBatchIds] = useState<number[] | null>(null);
 
-  const columns = useMemo(() => COLUMNS.filter(c => !hidden.has(c.key)), [hidden]);
+  const columns = useMemo(() => {
+    const sensitive = (key: 'parent_phone' | 'idcard', kind: SensitiveKind) =>
+      function SensitiveCell(v: unknown, r: Row) {
+        return (
+          <SensitiveValue
+            value={v}
+            kind={kind}
+            onSave={async nv => {
+              await update(Number(r.id), key === 'parent_phone' ? { parent_phone: nv } : { idcard: nv });
+            }}
+          />
+        );
+      };
+    return COLUMNS
+      .map(c => c.key === 'parent_phone' ? { ...c, render: sensitive('parent_phone', 'phone') }
+        : c.key === 'idcard' ? { ...c, render: sensitive('idcard', 'idcard') }
+        : c)
+      .filter(c => !hidden.has(c.key));
+  }, [update, hidden]);
 
   const onImport = async (text: string): Promise<ImportResult> => {
     const table = parseCsv(text);
@@ -133,7 +152,7 @@ export default function StudentsPage() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <TableToolbar title="学生管理" columns={TOOLBAR_COLS} hidden={hidden} onToggleColumn={toggle} rows={rows} onAdd={() => setAddOpen(true)} onImport={() => setImportOpen(true)} />
+      <TableToolbar title="学生管理" columns={TOOLBAR_COLS} hidden={hidden} onToggleColumn={toggle} rows={rows} onAdd={() => setAddOpen(true)} onImport={() => setImportOpen(true)} selectedKeys={selected} onBatchDelete={() => setBatchIds([...selected])} />
       <DataTable
         label="学生管理"
         columns={columns}
@@ -141,7 +160,9 @@ export default function StudentsPage() {
         loading={loading}
         onSave={update}
         pageSize={20}
-        actions={(r) => <Button variant="danger-soft" size="sm" onPress={() => setDeleting(r)}>删除</Button>}
+        selectable
+        selectedKeys={selected}
+        onSelectionChange={setSelected}
       />
       <FormModal title="新增学生" fields={FIELDS} open={addOpen} onClose={() => setAddOpen(false)} onSubmit={submit} />
       <ImportModal
@@ -156,17 +177,18 @@ export default function StudentsPage() {
         onSuccess={() => void reload()}
       />
       <Confirm
-        open={!!deleting}
-        onOpenChange={(o) => { if (!o) setDeleting(null); }}
+        open={!!batchIds}
+        onOpenChange={(o) => { if (!o) setBatchIds(null); }}
         title="删除记录"
-        message="确定删除该记录？"
+        message={`确定删除选中的 ${batchIds?.length ?? 0} 条记录？`}
         confirmText="删除"
         danger
         onConfirm={async () => {
-          if (!deleting) return;
-          try { await remove(deleting.id as number); toast.success('已删除'); }
+          if (!batchIds) return;
+          try { await removeMany(batchIds); toast.success(`已删除 ${batchIds.length} 条`); }
           catch { toast.error('删除失败'); }
-          setDeleting(null);
+          setBatchIds(null);
+          setSelected(new Set());
         }}
       />
     </div>
