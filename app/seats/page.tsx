@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Input, Drawer } from '@heroui/react';
 import { Download, RefreshCw, Trash2 } from 'lucide-react';
 import Confirm from '@/components/confirm';
@@ -7,6 +7,15 @@ import { del, get, post, put } from '@/lib/api-client';
 import type { Row } from '@/lib/types';
 import { downloadCsv } from '@/lib/csv';
 import { toast } from '@/lib/toast';
+import { PoolPanel, SeatCell } from '@/components/seats/seat-dnd';
+import {
+  buildSeatIdMap,
+  changesToOps,
+  planSeatDrag,
+  type SeatChange,
+  type SeatDragPayload,
+  type SeatDropTarget,
+} from '@/lib/seats-dnd';
 
 const MAX_DIM = 20;
 
@@ -51,27 +60,93 @@ export default function SeatsPage() {
 
   const used = useMemo(() => new Set(seats.map(x => String(x.student_name)).filter(Boolean)), [seats]);
 
-  const assign = async (name: string) => {
-    if (!selected) return;
-    const seat = grid.get(`${selected.row_index}-${selected.col_index}`);
-    try {
-      if (seat) await put(`/api/seats/${seat.id}`, { student_name: name });
-      else await post('/api/seats', { row_index: selected.row_index, col_index: selected.col_index, student_name: name });
-      toast.success(`已安排 ${name}`);
-      setSelected(null);
-      setReloadTick(t => t + 1);
-    } catch { toast.error('保存失败'); }
+  // 姓名 → 性别，用于座位分色
+  const genderByName = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const s of students) m.set(String(s.name), String(s.gender));
+    return m;
+  }, [students]);
+
+  // 待分配 = 未落座学生，按性别分男女两块（池是派生数据，落座/移除自动更新）
+  const unassigned = useMemo(() => students.filter(s => !used.has(String(s.name))), [students, used]);
+  const boys = useMemo(() => unassigned.filter(s => String(s.gender) !== '女'), [unassigned]);
+  const girls = useMemo(() => unassigned.filter(s => String(s.gender) === '女'), [unassigned]);
+
+  // ---- 拖拽：乐观更新 + 串行写库（POST 新建座位的 id 竞态用台账解决） ----
+  const seatsRef = useRef(seats);
+  useEffect(() => { seatsRef.current = seats; }, [seats]);
+  const seatIds = useMemo(() => buildSeatIdMap(seats), [seats]);
+  const seatIdsRef = useRef(seatIds);
+  useEffect(() => { seatIdsRef.current = seatIds; }, [seatIds]);
+  const queueRef = useRef<Promise<void>>(Promise.resolve());
+
+  const upgradeRowId = (row: number, col: number, id: number) => {
+    setSeats(prev =>
+      prev.map(r =>
+        Number(r.row_index) === row && Number(r.col_index) === col && !(Number(r.id) > 0) ? { ...r, id } : r,
+      ),
+    );
   };
 
-  const clearSeat = async () => {
+  const syncChanges = async (changes: SeatChange[]) => {
+    const ops = changesToOps(changes, seatIdsRef.current);
+    try {
+      for (const op of ops) {
+        const key = `${op.row}-${op.col}`;
+        if (op.kind === 'put' && op.id != null) {
+          const row = await put<Row>(`/api/seats/${op.id}`, { student_name: op.student_name });
+          seatIdsRef.current.set(key, Number(row.id));
+          upgradeRowId(op.row, op.col, Number(row.id));
+        } else if (op.kind === 'post') {
+          const row = await post<Row>('/api/seats', {
+            row_index: op.row, col_index: op.col, student_name: op.student_name,
+          });
+          seatIdsRef.current.set(key, Number(row.id));
+          upgradeRowId(op.row, op.col, Number(row.id));
+        }
+      }
+    } catch {
+      toast.error('保存失败');
+      setReloadTick(t => t + 1);
+    }
+  };
+
+  const handleDrop = (payload: SeatDragPayload, target: SeatDropTarget) => {
+    const { changes, next } = planSeatDrag(seatsRef.current, payload, target);
+    if (changes.length === 0) return;
+    setSeats(next);
+    queueRef.current = queueRef.current.then(() => syncChanges(changes));
+  };
+
+  // 抽屉手动安排/移除复用同一条拖拽写库路径
+  const assign = (name: string) => {
+    if (!selected) return;
+    handleDrop(
+      { kind: 'pool', name },
+      { type: 'cell', row: Number(selected.row_index), col: Number(selected.col_index) },
+    );
+    toast.success(`已安排 ${name}`);
+    setSelected(null);
+  };
+
+  const clearSeat = () => {
     if (!selected) return;
     const seat = grid.get(`${selected.row_index}-${selected.col_index}`);
-    if (!seat) return;
-    try { await put(`/api/seats/${seat.id}`, { student_name: '' }); setSelected(null); setReloadTick(t => t + 1); }
-    catch { toast.error('保存失败'); }
+    handleDrop(
+      {
+        kind: 'seat',
+        name: String(seat?.student_name ?? ''),
+        seatId: seat ? Number(seat.id) : null,
+        row: Number(selected.row_index),
+        col: Number(selected.col_index),
+      },
+      { type: 'pool' },
+    );
+    setSelected(null);
   };
 
   const applyConfig = async () => {
+    await queueRef.current;
     const rowCount = Math.min(MAX_DIM, Math.max(1, Number(rowDraft) || 1));
     const colCount = Math.min(MAX_DIM, Math.max(1, Number(colDraft) || 1));
     setBusy(true);
@@ -93,12 +168,14 @@ export default function SeatsPage() {
   };
 
   const randomSeat = async () => {
+    await queueRef.current;
     setBusy(true);
     try {
       const res = await post<{ placed: number; total: number }>('/api/seats/random', {
         row_count: cfg.row_count, col_count: cfg.col_count,
       });
       setSelected(null);
+      setConfirmRandom(false);
       setReloadTick(t => t + 1);
       if (res.placed < res.total) toast.warning(`座位不够，仅安排了 ${res.placed}/${res.total} 人`);
       else toast.success('已按规则随机排座');
@@ -107,10 +184,12 @@ export default function SeatsPage() {
   };
 
   const clearAll = async () => {
+    await queueRef.current;
     setBusy(true);
     try {
       await post('/api/seats/clear', {});
       setSelected(null);
+      setConfirmClear(false);
       setReloadTick(t => t + 1);
       toast.success('已移除全部座位学生');
     } catch { toast.error('移除失败'); }
@@ -149,33 +228,37 @@ export default function SeatsPage() {
         </div>
       </div>
 
-      <p className="mb-3 text-xs text-slate-500">竖排为一个小组。点击任意座位安排学生；已落座的学生再次点击可移除。</p>
-      <div className="rounded-xl bg-white p-4">
-        <div className="mx-auto mb-4 w-40 rounded bg-slate-800 py-1.5 text-center text-xs text-white">讲 台</div>
-        <div className="overflow-x-auto">
-          <div className="mx-auto min-w-max">
-            <div className="mb-1 flex justify-center gap-2">
-              {Array.from({ length: cfg.col_count }).map((_, c) => (
-                <div key={c} className="w-14 text-center text-xs text-slate-400">第{c + 1}组</div>
+      <p className="mb-3 text-xs text-slate-500">
+        竖排为一个小组。从左侧「待分配」拖学生入座（男生蓝色、女生粉色），座位间可拖拽互换，拖回「待分配」即移除；点击座位也可手动安排。
+      </p>
+
+      <div className="flex flex-col gap-4 lg:flex-row">
+        <PoolPanel boys={boys} girls={girls} onDropStudent={handleDrop} />
+        <div className="flex-1 rounded-xl bg-white p-4">
+          <div className="mx-auto mb-4 w-40 rounded bg-slate-800 py-1.5 text-center text-xs text-white">讲 台</div>
+          <div className="overflow-x-auto">
+            <div className="mx-auto min-w-max">
+              <div className="mb-1 flex justify-center gap-2">
+                {Array.from({ length: cfg.col_count }).map((_, c) => (
+                  <div key={c} className="w-14 text-center text-xs text-slate-400">第{c + 1}组</div>
+                ))}
+              </div>
+              {Array.from({ length: cfg.row_count }).map((_, r) => (
+                <div key={r} className="mb-2 flex justify-center gap-2">
+                  {Array.from({ length: cfg.col_count }).map((_, c) => (
+                    <SeatCell
+                      key={c}
+                      row={r}
+                      col={c}
+                      seat={grid.get(`${r}-${c}`) ?? null}
+                      genderByName={genderByName}
+                      onOpen={setSelected}
+                      onDropStudent={handleDrop}
+                    />
+                  ))}
+                </div>
               ))}
             </div>
-            {Array.from({ length: cfg.row_count }).map((_, r) => (
-              <div key={r} className="mb-2 flex justify-center gap-2">
-                {Array.from({ length: cfg.col_count }).map((_, c) => {
-                  const seat = grid.get(`${r}-${c}`);
-                  const name = String(seat?.student_name ?? '');
-                  return (
-                    <button
-                      key={c}
-                      onClick={() => setSelected(seat ?? { row_index: r, col_index: c, student_name: '' })}
-                      className={`flex h-12 w-14 items-center justify-center rounded-md border text-xs transition-colors ${name ? 'border-blue-200 bg-blue-50 text-blue-700' : 'border-gray-200 bg-white text-gray-300'}`}
-                    >
-                      {name || '＋'}
-                    </button>
-                  );
-                })}
-              </div>
-            ))}
           </div>
         </div>
       </div>
